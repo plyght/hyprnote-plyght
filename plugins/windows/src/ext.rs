@@ -25,6 +25,8 @@ pub enum HyprWindow {
     Video(String),
     #[serde(rename = "plans")]
     Plans,
+    #[serde(rename = "control")]
+    Control,
 }
 
 impl std::fmt::Display for HyprWindow {
@@ -38,6 +40,7 @@ impl std::fmt::Display for HyprWindow {
             Self::Settings => write!(f, "settings"),
             Self::Video(id) => write!(f, "video-{}", id),
             Self::Plans => write!(f, "plans"),
+            Self::Control => write!(f, "control"),
         }
     }
 }
@@ -143,6 +146,7 @@ impl HyprWindow {
             Self::Settings => "Settings".into(),
             Self::Video(_) => "Video".into(),
             Self::Plans => "Plans".into(),
+            Self::Control => "Control".into(),
         }
     }
 
@@ -161,6 +165,7 @@ impl HyprWindow {
             Self::Settings => LogicalSize::new(800.0, 600.0),
             Self::Video(_) => LogicalSize::new(640.0, 360.0),
             Self::Plans => LogicalSize::new(900.0, 600.0),
+            Self::Control => LogicalSize::new(100.0, 100.0),
         }
     }
 
@@ -174,6 +179,7 @@ impl HyprWindow {
             Self::Settings => LogicalSize::new(800.0, 600.0),
             Self::Video(_) => LogicalSize::new(640.0, 360.0),
             Self::Plans => LogicalSize::new(900.0, 600.0),
+            Self::Control => LogicalSize::new(100.0, 100.0),
         }
     }
 
@@ -271,6 +277,7 @@ impl HyprWindow {
                     Self::Settings => "/app/settings",
                     Self::Video(id) => &format!("/video?id={}", id),
                     Self::Plans => "/app/plans",
+                    Self::Control => "/app/control",
                 };
                 (self.window_builder(app, url).build()?, true)
             }
@@ -360,6 +367,18 @@ impl HyprWindow {
                     window.set_min_size(Some(min_size))?;
                 }
                 Self::Plans => {
+                    window.hide()?;
+                    std::thread::sleep(std::time::Duration::from_millis(100));
+
+                    window.set_maximizable(false)?;
+                    window.set_minimizable(false)?;
+
+                    window.set_size(default_size)?;
+                    window.set_min_size(Some(min_size))?;
+
+                    window.center()?;
+                }
+                Self::Control => {
                     window.hide()?;
                     std::thread::sleep(std::time::Duration::from_millis(100));
 

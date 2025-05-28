@@ -10,6 +10,9 @@ export const commands = {
 async windowShow(window: HyprWindow) : Promise<null> {
     return await TAURI_INVOKE("plugin:windows|window_show", { window });
 },
+async windowClose(window: HyprWindow) : Promise<null> {
+    return await TAURI_INVOKE("plugin:windows|window_close", { window });
+},
 async windowHide(window: HyprWindow) : Promise<null> {
     return await TAURI_INVOKE("plugin:windows|window_hide", { window });
 },

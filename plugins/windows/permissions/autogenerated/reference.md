@@ -27,6 +27,32 @@ Default permissions for the plugin
 <tr>
 <td>
 
+`windows:allow-window-close`
+
+</td>
+<td>
+
+Enables the window_close command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`windows:deny-window-close`
+
+</td>
+<td>
+
+Denies the window_close command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `windows:allow-window-destroy`
 
 </td>

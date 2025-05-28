@@ -295,6 +295,18 @@
       "type": "string",
       "oneOf": [
         {
+          "description": "Enables the window_close command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-window-close",
+          "markdownDescription": "Enables the window_close command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the window_close command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-window-close",
+          "markdownDescription": "Denies the window_close command without any pre-configured scope."
+        },
+        {
           "description": "Enables the window_destroy command without any pre-configured scope.",
           "type": "string",
           "const": "allow-window-destroy",

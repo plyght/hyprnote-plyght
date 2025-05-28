@@ -15,7 +15,7 @@ pub struct OverlayState {
     pub bounds: Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>,
 }
 
-pub fn spwan_overlay_listener(app: AppHandle, window: WebviewWindow) {
+pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
     window.set_ignore_cursor_events(true).ok();
 
     tokio::spawn(async move {

@@ -1,5 +1,6 @@
 const COMMANDS: &[&str] = &[
     "window_show",
+    "window_close",
     "window_hide",
     "window_destroy",
     "window_position",

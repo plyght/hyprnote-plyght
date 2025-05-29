@@ -382,19 +382,16 @@ impl HyprWindow {
                             use tauri_nspanel::cocoa::appkit::{NSWindowCollectionBehavior,NSMainMenuWindowLevel};
                             use tauri_nspanel::WebviewWindowExt as NSPanelWebviewWindowExt;
 
-                            let panel = window.to_panel().unwrap();
+                            if let Ok(panel) = window.to_panel() {
+                                panel.set_level(NSMainMenuWindowLevel);
+                                panel.set_collection_behaviour(
+                                    NSWindowCollectionBehavior::NSWindowCollectionBehaviorTransient
+                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorMoveToActiveSpace
+                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary
+                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorIgnoresCycle,
+                                );
 
-                            panel.set_level(NSMainMenuWindowLevel);
-                            panel.set_collection_behaviour(
-                                NSWindowCollectionBehavior::NSWindowCollectionBehaviorTransient
-                                    | NSWindowCollectionBehavior::NSWindowCollectionBehaviorMoveToActiveSpace
-                                    | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary
-                                    | NSWindowCollectionBehavior::NSWindowCollectionBehaviorIgnoresCycle,
-                            );
-
-                            #[allow(non_upper_case_globals)]
-                            const NSWindowStyleMaskNonActivatingPanel: i32 = 1 << 7;
-                            panel.set_style_mask(NSWindowStyleMaskNonActivatingPanel);
+                            }
                         }
                     })
                     .ok();

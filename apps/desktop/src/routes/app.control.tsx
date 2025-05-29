@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Camera, Circle, Grip, Settings, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { commands as windowsCommands } from "@hypr/plugin-windows";
 
@@ -9,6 +10,8 @@ export const Route = createFileRoute("/app/control")({
 });
 
 function Component() {
+  const currentWindowLabel = useMemo(() => getCurrentWindow().label, []);
+
   const [position, setPosition] = useState(() => {
     const windowWidth = window.innerWidth;
     const initialX = (windowWidth - 200) / 2;
@@ -20,10 +23,10 @@ function Component() {
   const [isRecording, setIsRecording] = useState(false);
   const controlRef = useRef<HTMLDivElement>(null);
 
-  const updateOverlayBounds = () => {
+  const updateOverlayBounds = async () => {
     if (controlRef.current) {
       const rect = controlRef.current.getBoundingClientRect();
-      windowsCommands.windowSetOverlayBounds("control-overlay", {
+      await windowsCommands.windowSetOverlayBounds(currentWindowLabel, {
         x: rect.left,
         y: rect.top,
         width: rect.width,
@@ -57,7 +60,7 @@ function Component() {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
-      windowsCommands.windowRemoveOverlayBounds("control-overlay");
+      windowsCommands.windowRemoveOverlayBounds(currentWindowLabel);
     };
   }, [isDragging, dragOffset]);
 

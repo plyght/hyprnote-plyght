@@ -69,7 +69,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
                     && mouse_position.y >= y_min
                     && mouse_position.y <= y_max
                 {
-                    println!("Mouse is inside bounds for {}", name);
                     ignore = false;
                     break;
                 }

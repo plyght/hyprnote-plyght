@@ -37,10 +37,52 @@ const initialState: State = {
 export type OngoingSessionStore = ReturnType<typeof createOngoingSessionStore>;
 
 export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof createSessionsStore>) => {
-  return createStore<State & Actions>((set, get) => ({
-    ...initialState,
-    get: () => get(),
-    cancelEnhance: () => {
+  return createStore<State & Actions>((set, get) => {
+    // Set up global session event listener
+    listenerEvents.sessionEvent.listen(({ payload }) => {
+      if (payload.type === "audioAmplitude") {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.amplitude = {
+              mic: payload.mic,
+              speaker: payload.speaker,
+            };
+          })
+        );
+      } else if (payload.type === "running_active") {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.status = "running_active";
+            draft.loading = false;
+          })
+        );
+      } else if (payload.type === "running_paused") {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.status = "running_paused";
+            draft.loading = false;
+          })
+        );
+      } else if (payload.type === "inactive") {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.status = "inactive";
+            draft.loading = false;
+          })
+        );
+      }
+    }).then((unlisten) => {
+      set((state) =>
+        mutate(state, (draft) => {
+          draft.sessionEventUnlisten = unlisten;
+        })
+      );
+    });
+
+    return {
+      ...initialState,
+      get: () => get(),
+      cancelEnhance: () => {
       const { enhanceController } = get();
       if (enhanceController) {
         enhanceController.abort();
@@ -70,25 +112,6 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
 
       const sessionStore = sessionsStore.getState().sessions[sessionId];
       sessionStore.getState().persistSession(undefined, true);
-
-      listenerEvents.sessionEvent.listen(({ payload }) => {
-        if (payload.type === "audioAmplitude") {
-          set((state) =>
-            mutate(state, (draft) => {
-              draft.amplitude = {
-                mic: payload.mic,
-                speaker: payload.speaker,
-              };
-            })
-          );
-        }
-      }).then((unlisten) => {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.sessionEventUnlisten = unlisten;
-          })
-        );
-      });
 
       listenerCommands.startSession(sessionId).then(() => {
         set({ status: "running_active", loading: false });
@@ -134,5 +157,6 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
         set({ status: "running_active" });
       });
     },
-  }));
+    };
+  });
 };

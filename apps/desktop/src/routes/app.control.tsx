@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Camera, Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { emit } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 
 import { commands as windowsCommands } from "@hypr/plugin-windows";
 import { commands as listenerCommands, events as listenerEvents } from "@hypr/plugin-listener";
@@ -73,7 +73,7 @@ function Component() {
     initializeState();
     
     // Listen for session events
-    const unsubscribe = listenerEvents.sessionEvent.listen(({ payload }) => {
+    const unsubscribeSession = listenerEvents.sessionEvent.listen(({ payload }) => {
       console.log(`[Control Bar] Session event:`, payload);
       
       if (payload.type === "inactive" || payload.type === "running_active" || payload.type === "running_paused") {
@@ -82,8 +82,21 @@ function Component() {
       }
     });
     
+    // Listen for audio state changes from other windows
+    const unsubscribeMicState = listen<{ muted: boolean }>("audio-mic-state-changed", ({ payload }) => {
+      console.log(`[Control Bar] Received mic state change:`, payload);
+      setMicMuted(payload.muted);
+    });
+    
+    const unsubscribeSpeakerState = listen<{ muted: boolean }>("audio-speaker-state-changed", ({ payload }) => {
+      console.log(`[Control Bar] Received speaker state change:`, payload);
+      setSpeakerMuted(payload.muted);
+    });
+    
     return () => {
-      unsubscribe.then(unlisten => unlisten());
+      unsubscribeSession.then(unlisten => unlisten());
+      unsubscribeMicState.then(unlisten => unlisten());
+      unsubscribeSpeakerState.then(unlisten => unlisten());
     };
   }, []);
   
@@ -250,6 +263,8 @@ function Component() {
       const newMuted = !micMuted;
       await listenerCommands.setMicMuted(newMuted);
       setMicMuted(newMuted);
+      // Emit event to synchronize with other windows
+      await emit("audio-mic-state-changed", { muted: newMuted });
       console.log(`[Control Bar] ${newMuted ? "Muted" : "Unmuted"} microphone`);
     } catch (error) {
       console.error("[Control Bar] Mic toggle error:", error);
@@ -261,6 +276,8 @@ function Component() {
       const newMuted = !speakerMuted;
       await listenerCommands.setSpeakerMuted(newMuted);
       setSpeakerMuted(newMuted);
+      // Emit event to synchronize with other windows
+      await emit("audio-speaker-state-changed", { muted: newMuted });
       console.log(`[Control Bar] ${newMuted ? "Muted" : "Unmuted"} speaker`);
     } catch (error) {
       console.error("[Control Bar] Speaker toggle error:", error);

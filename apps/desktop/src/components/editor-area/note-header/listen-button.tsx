@@ -11,6 +11,7 @@ import {
   VolumeOffIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { emit, listen } from "@tauri-apps/api/event";
 
 import SoundIndicator from "@/components/sound-indicator";
 import { useHypr } from "@/contexts";
@@ -227,7 +228,8 @@ export function WhenActive() {
 
   useEffect(() => {
     if (showConsent) {
-      listenerCommands.setSpeakerMuted(true).then(() => {
+      listenerCommands.setSpeakerMuted(true).then(async () => {
+        await emit("audio-speaker-state-changed", { muted: true });
         audioControls.refetchSpeakerMuted();
       });
     }
@@ -237,9 +239,12 @@ export function WhenActive() {
     mutationFn: async (recordEveryone: boolean) => {
       if (recordEveryone) {
         await listenerCommands.setSpeakerMuted(false);
+        await emit("audio-speaker-state-changed", { muted: false });
       } else {
         await listenerCommands.setSpeakerMuted(true);
         await listenerCommands.setMicMuted(false);
+        await emit("audio-speaker-state-changed", { muted: true });
+        await emit("audio-mic-state-changed", { muted: false });
       }
       setHasShownConsent(true);
     },
@@ -438,13 +443,43 @@ function useAudioControls() {
     queryFn: () => listenerCommands.getSpeakerMuted(),
   });
 
+  // Listen for audio state changes from other windows
+  useEffect(() => {
+    const unsubscribeMicState = listen<{ muted: boolean }>("audio-mic-state-changed", ({ payload }) => {
+      console.log(`[Main Window] Received mic state change:`, payload);
+      refetchMicMuted();
+    });
+    
+    const unsubscribeSpeakerState = listen<{ muted: boolean }>("audio-speaker-state-changed", ({ payload }) => {
+      console.log(`[Main Window] Received speaker state change:`, payload);
+      refetchSpeakerMuted();
+    });
+    
+    return () => {
+      unsubscribeMicState.then(unlisten => unlisten());
+      unsubscribeSpeakerState.then(unlisten => unlisten());
+    };
+  }, [refetchMicMuted, refetchSpeakerMuted]);
+
   const toggleMicMuted = useMutation({
-    mutationFn: () => listenerCommands.setMicMuted(!isMicMuted),
+    mutationFn: async () => {
+      const newMuted = !isMicMuted;
+      await listenerCommands.setMicMuted(newMuted);
+      // Emit event to synchronize with other windows
+      await emit("audio-mic-state-changed", { muted: newMuted });
+      return newMuted;
+    },
     onSuccess: () => refetchMicMuted(),
   });
 
   const toggleSpeakerMuted = useMutation({
-    mutationFn: () => listenerCommands.setSpeakerMuted(!isSpeakerMuted),
+    mutationFn: async () => {
+      const newMuted = !isSpeakerMuted;
+      await listenerCommands.setSpeakerMuted(newMuted);
+      // Emit event to synchronize with other windows
+      await emit("audio-speaker-state-changed", { muted: newMuted });
+      return newMuted;
+    },
     onSuccess: () => refetchSpeakerMuted(),
   });
 

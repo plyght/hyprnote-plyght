@@ -11,4 +11,8 @@ permissions = [
     "allow-window-navigate",
     "allow-window-emit-navigate",
     "allow-window-is-visible",
+    "allow-window-set-overlay-bounds",
+    "allow-window-remove-overlay-bounds",
+    "allow-set-fake-window-bounds",
+    "allow-remove-fake-window",
 ]

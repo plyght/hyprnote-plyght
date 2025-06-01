@@ -12,6 +12,8 @@ const COMMANDS: &[&str] = &[
     "window_resize_default",
     "window_set_overlay_bounds",
     "window_remove_overlay_bounds",
+    "set_fake_window_bounds",
+    "remove_fake_window",
 ];
 
 fn main() {

@@ -14,6 +14,10 @@ Default permissions for the plugin
 - `allow-window-navigate`
 - `allow-window-emit-navigate`
 - `allow-window-is-visible`
+- `allow-window-set-overlay-bounds`
+- `allow-window-remove-overlay-bounds`
+- `allow-set-fake-window-bounds`
+- `allow-remove-fake-window`
 
 ## Permission Table
 
@@ -23,6 +27,58 @@ Default permissions for the plugin
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`windows:allow-remove-fake-window`
+
+</td>
+<td>
+
+Enables the remove_fake_window command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`windows:deny-remove-fake-window`
+
+</td>
+<td>
+
+Denies the remove_fake_window command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`windows:allow-set-fake-window-bounds`
+
+</td>
+<td>
+
+Enables the set_fake_window_bounds command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`windows:deny-set-fake-window-bounds`
+
+</td>
+<td>
+
+Denies the set_fake_window_bounds command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>

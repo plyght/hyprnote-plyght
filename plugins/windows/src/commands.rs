@@ -163,9 +163,11 @@ pub async fn set_fake_window_bounds(
     bounds: OverlayBound,
     state: tauri::State<'_, FakeWindowBounds>,
 ) -> Result<(), String> {
+    println!("Setting fake window bounds for {}: {:?}", name, bounds);
     let mut state = state.0.write().await;
     let map = state.entry(window.label().to_string()).or_default();
     map.insert(name, bounds);
+    println!("Total bounds for window {}: {}", window.label(), map.len());
     Ok(())
 }
 

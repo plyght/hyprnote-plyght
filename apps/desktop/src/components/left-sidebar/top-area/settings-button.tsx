@@ -46,7 +46,7 @@ export function SettingsButton() {
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="hover:bg-neutral-200">
+        <Button variant="ghost" size="icon" className="hover:bg-muted">
           <CogIcon className="size-4" />
         </Button>
       </DropdownMenuTrigger>
@@ -55,7 +55,7 @@ export function SettingsButton() {
         <div
           className={cn([
             "px-2 py-3 bg-gradient-to-r rounded-t-md relative overflow-hidden cursor-pointer",
-            "from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800",
+            "from-secondary to-secondary/80 hover:from-secondary/90 hover:to-secondary/70",
           ])}
           onClick={handleClickPlans}
         >

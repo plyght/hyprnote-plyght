@@ -58,7 +58,7 @@ export default function EventsList({
   return (
     <section className="border-b mb-4 border-border">
       <div className="flex items-center gap-2">
-        <h2 className="font-bold text-neutral-600 mb-1">
+        <h2 className="font-bold text-muted-foreground mb-1">
           <Trans>Upcoming</Trans>
         </h2>
         <button
@@ -69,7 +69,7 @@ export default function EventsList({
             size={12}
             className={cn(
               syncEventsMutation.isPending && "animate-spin",
-              "text-gray-500 hover:text-gray-700",
+              "text-muted-foreground hover:text-foreground",
             )}
           />
         </button>
@@ -91,7 +91,7 @@ export default function EventsList({
         )
         : (
           <div className="pb-2 pl-1">
-            <p className="text-xs text-neutral-400">
+            <p className="text-xs text-muted-foreground">
               <Trans>No upcoming events</Trans>
             </p>
           </div>
@@ -153,14 +153,14 @@ function EventItem({
           onClick={handleClick}
           className={clsx([
             "w-full text-left group flex items-start gap-3 py-2 rounded-lg px-2",
-            isActive ? "bg-neutral-200" : "hover:bg-neutral-100",
+            isActive ? "bg-muted" : "hover:bg-muted/50",
           ])}
         >
           <div className="flex items-center gap-1 w-full">
             <div className="flex-1 flex flex-col items-start gap-1 truncate">
               <EventItemTitle event={event} />
 
-              <div className="flex items-center gap-2 text-xs text-neutral-500 line-clamp-1">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground line-clamp-1">
                 <span>{formatUpcomingTime(new Date(event.start_date))}</span>
               </div>
             </div>

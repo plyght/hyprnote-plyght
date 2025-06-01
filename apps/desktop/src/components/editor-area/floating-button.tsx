@@ -79,16 +79,16 @@ export function FloatingButton({
     "rounded-l-xl border-l border-y",
     "border-border px-4 py-2.5 transition-all ease-in-out",
     showRaw
-      ? "bg-primary text-primary-foreground border-black hover:bg-neutral-800"
-      : "bg-background text-neutral-400 hover:bg-neutral-100",
+      ? "bg-primary text-primary-foreground border-foreground hover:bg-primary/90"
+      : "bg-background text-muted-foreground hover:bg-muted",
   );
 
   const enhanceButtonClasses = cn(
     "rounded-r-xl border-r border-y",
     "border border-border px-4 py-2.5 transition-all ease-in-out",
     showRaw
-      ? "bg-background text-neutral-400 hover:bg-neutral-100"
-      : "bg-primary text-primary-foreground border-black hover:bg-neutral-800",
+      ? "bg-background text-muted-foreground hover:bg-muted"
+      : "bg-primary text-primary-foreground border-foreground hover:bg-primary/90",
   );
 
   const showRefresh = !showRaw && isHovered && showRefreshIcon;

@@ -57,7 +57,7 @@ function Component() {
       <div className="flex-1">
         {/* Sidebar */}
         <div className="flex h-full">
-          <div className="w-60 border-r">
+          <div className="w-60 border-r border-border">
             <div
               data-tauri-drag-region
               className="flex items-center h-11 justify-end px-2"
@@ -70,8 +70,8 @@ function Component() {
                     <button
                       key={tab.name}
                       className={cn(
-                        "flex w-full items-center gap-2 rounded-lg p-2 text-sm text-neutral-600 hover:bg-neutral-100",
-                        search.tab === tab.name && "bg-neutral-100 font-medium",
+                        "flex w-full items-center gap-2 rounded-lg p-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                        search.tab === tab.name && "bg-accent text-accent-foreground font-medium",
                       )}
                       onClick={() => handleClickTab(tab.name)}
                     >

@@ -117,7 +117,7 @@ if (!rootElement.innerHTML) {
   root.render(
     <CatchBoundary getResetKey={() => "error"} errorComponent={ErrorComponent}>
       <TooltipProvider delayDuration={700} skipDelayDuration={300}>
-        <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="system" storageKey="hypr-ui-theme">
           <QueryClientProvider client={queryClient}>
             <I18nProvider i18n={i18n}>
               <App />

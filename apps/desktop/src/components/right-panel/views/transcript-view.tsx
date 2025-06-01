@@ -87,10 +87,10 @@ export function TranscriptView() {
 
   return (
     <div className="w-full h-full flex flex-col">
-      <header className="flex items-center justify-between w-full px-4 py-1 my-1 border-b border-neutral-100">
+      <header className="flex items-center justify-between w-full px-4 py-1 my-1 border-b border-border">
         {!showEmptyMessage && (
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-neutral-900">Transcript</h2>
+            <h2 className="text-sm font-semibold text-foreground">Transcript</h2>
             {isLive && (
               <div className="relative h-1.5 w-1.5">
                 <div className="absolute inset-0 rounded-full bg-red-500/30"></div>
@@ -106,7 +106,7 @@ export function TranscriptView() {
               size="sm"
               onClick={handleOpenSession}
             >
-              <AudioLinesIcon size={14} className="text-neutral-600" />
+              <AudioLinesIcon size={14} className="text-muted-foreground" />
             </Button>
           )}
           {showActions && <SearchAndReplace editorRef={editorRef} />}
@@ -149,10 +149,10 @@ function RenderEmpty({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="h-full flex items-center justify-center">
-      <div className="text-neutral-500 font-medium text-center">
-        <div className="mb-6 text-neutral-600 flex items-center gap-1.5">
-          <Button size="sm" onClick={handleStartRecording} disabled={ongoingSession.loading}>
-            {ongoingSession.loading ? <Spinner color="black" /> : (
+      <div className="text-muted-foreground font-medium text-center">
+        <div className="mb-6 text-foreground flex items-center gap-1.5">
+          <Button variant="outline" size="sm" onClick={handleStartRecording} disabled={ongoingSession.loading}>
+            {ongoingSession.loading ? <Spinner /> : (
               <div className="relative h-2 w-2">
                 <div className="absolute inset-0 rounded-full bg-red-500"></div>
                 <div className="absolute inset-0 rounded-full bg-red-400 animate-ping"></div>
@@ -164,19 +164,19 @@ function RenderEmpty({ sessionId }: { sessionId: string }) {
         </div>
 
         <div className="flex items-center justify-center w-full max-w-[240px] mb-4">
-          <div className="h-px bg-neutral-200 flex-grow"></div>
-          <span className="px-3 text-xs text-neutral-400 font-medium">or</span>
-          <div className="h-px bg-neutral-200 flex-grow"></div>
+          <div className="h-px bg-border flex-grow"></div>
+          <span className="px-3 text-xs text-muted-foreground font-medium">or</span>
+          <div className="h-px bg-border flex-grow"></div>
         </div>
 
         <div className="flex flex-col gap-2">
-          <Button variant="outline" size="sm" className="hover:bg-neutral-100" disabled>
+          <Button variant="outline" size="sm" className="hover:bg-accent" disabled>
             <UploadIcon size={14} />Upload recording{" "}
-            <span className="text-xs text-neutral-400 italic">coming soon</span>
+            <span className="text-xs text-muted-foreground italic">coming soon</span>
           </Button>
-          <Button variant="outline" size="sm" className="hover:bg-neutral-100" disabled>
+          <Button variant="outline" size="sm" className="hover:bg-accent" disabled>
             <ClipboardIcon size={14} />Paste transcript{" "}
-            <span className="text-xs text-neutral-400 italic">coming soon</span>
+            <span className="text-xs text-muted-foreground italic">coming soon</span>
           </Button>
         </div>
       </div>
@@ -250,7 +250,7 @@ const MemoizedSpeakerSelector = memo(({
   };
 
   return (
-    <div className="mt-2 sticky top-0 z-10 bg-neutral-50">
+    <div className="mt-2 sticky top-0 z-10 bg-background">
       <Popover open={isOpen} onOpenChange={setIsOpen}>
         <PopoverTrigger
           onMouseDown={(e) => {
@@ -265,7 +265,7 @@ const MemoizedSpeakerSelector = memo(({
         <PopoverContent align="start" side="bottom">
           <div className="space-y-4">
             {!speakerId && (
-              <div className="border-b border-neutral-100 pb-3">
+              <div className="border-b border-border pb-3">
                 <SpeakerRangeSelector
                   value={speakerRange}
                   onChange={setSpeakerRange}
@@ -295,8 +295,8 @@ function SpeakerRangeSelector({ value, onChange }: SpeakerRangeSelectorProps) {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-sm font-medium text-neutral-700">Apply speaker change to:</p>
-      <div className="flex rounded-md border border-neutral-200 p-0.5 bg-neutral-50">
+      <p className="text-sm font-medium text-foreground">Apply speaker change to:</p>
+      <div className="flex rounded-md border border-border p-0.5 bg-muted">
         {options.map((option) => (
           <label
             key={option.value}
@@ -314,8 +314,8 @@ function SpeakerRangeSelector({ value, onChange }: SpeakerRangeSelectorProps) {
             <div
               className={`px-2 py-1 text-xs font-medium text-center rounded transition-colors ${
                 value === option.value
-                  ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-600 hover:text-neutral-900 hover:bg-white/50"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-background/50"
               } ${option.value !== "current" ? "opacity-50" : ""}`}
             >
               {option.label}
@@ -370,7 +370,7 @@ function SearchAndReplace({ editorRef }: { editorRef: React.RefObject<any> }) {
           variant="ghost"
           size="icon"
         >
-          <TextSearchIcon size={14} className="text-neutral-600" />
+          <TextSearchIcon size={14} className="text-muted-foreground" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-2" align="start" side="left">
@@ -416,8 +416,8 @@ function CopyButton({ onCopy }: { onCopy: () => void }) {
       onClick={handleClick}
     >
       {copied
-        ? <CheckIcon size={14} className="text-neutral-800" />
-        : <CopyIcon size={14} className="text-neutral-600" />}
+        ? <CheckIcon size={14} className="text-foreground" />
+        : <CopyIcon size={14} className="text-muted-foreground" />}
     </Button>
   );
 }

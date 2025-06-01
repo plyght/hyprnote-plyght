@@ -22,8 +22,8 @@ export function TranscriptPanelButton() {
           size="icon"
           onClick={handleClick}
           className={cn(
-            "hover:bg-neutral-300 text-xs",
-            isExpanded && "bg-neutral-200",
+            "hover:bg-muted text-xs",
+            isExpanded && "bg-muted",
           )}
         >
           <CaptionsIcon className="size-4" />

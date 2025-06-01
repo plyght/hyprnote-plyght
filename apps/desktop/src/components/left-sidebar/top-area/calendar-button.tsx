@@ -17,7 +17,7 @@ export function CalendarButton() {
           variant="ghost"
           size="icon"
           onClick={handleClickCalendar}
-          className="hover:bg-neutral-200"
+          className="hover:bg-muted"
         >
           <CalendarDaysIcon className="size-4" />
         </Button>

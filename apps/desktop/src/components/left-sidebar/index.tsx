@@ -86,7 +86,7 @@ export default function LeftSidebar() {
   }
 
   return (
-    <nav className="h-full flex flex-col overflow-hidden border-r bg-neutral-50 w-60">
+    <nav className="h-full flex flex-col overflow-hidden border-r bg-background w-60">
       <TopArea />
 
       {inMeetingAndNotInNote && <OngoingSession sessionId={ongoingSessionId} />}

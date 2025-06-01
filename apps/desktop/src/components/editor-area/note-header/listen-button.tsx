@@ -60,7 +60,7 @@ export default function ListenButton({ sessionId }: { sessionId: string }) {
   if (ongoingSessionStore.loading) {
     return (
       <div className="w-9 h-9 flex items-center justify-center">
-        <Spinner color="black" />
+        <Spinner />
       </div>
     );
   }
@@ -116,7 +116,7 @@ function WhenInactiveAndMeetingNotEnded({ disabled, onClick }: { disabled: boole
           onClick={onClick}
           className={cn([
             "w-9 h-9 rounded-full border-2 transition-all hover:scale-95 cursor-pointer outline-none p-0 flex items-center justify-center shadow-[inset_0_0_0_2px_rgba(255,255,255,0.8)]",
-            disabled ? "bg-neutral-200 border-neutral-400" : "bg-red-500 border-neutral-400",
+            disabled ? "bg-muted border-border" : "bg-red-500 border-border",
           ])}
         >
         </button>
@@ -141,7 +141,7 @@ function WhenInactiveAndMeetingEnded({ disabled, onClick }: { disabled: boolean;
       onMouseLeave={() => setIsHovered(false)}
       className={cn(
         "w-16 h-9 rounded-full transition-all outline-none p-0 flex items-center justify-center text-xs font-medium",
-        "bg-neutral-200 border-2 border-neutral-400 text-neutral-600",
+        "bg-muted border-2 border-border text-muted-foreground",
         "shadow-[0_0_0_2px_rgba(255,255,255,0.8)_inset]",
         !disabled
           ? "hover:opacity-100 hover:bg-red-100 hover:text-red-600 hover:border-red-400 hover:scale-95 cursor-pointer"
@@ -160,7 +160,7 @@ function WhenInactiveAndMeetingNotEndedOnboarding({ disabled, onClick }: { disab
       onClick={onClick}
       className={cn([
         "w-24 h-9 rounded-full border-2 transition-all cursor-pointer outline-none p-0 flex items-center justify-center gap-1",
-        "bg-neutral-800 border-neutral-700 text-white text-xs font-medium",
+        "bg-primary border-primary text-primary-foreground text-xs font-medium",
       ])}
       style={{
         boxShadow: "0 0 0 2px rgba(255, 255, 255, 0.8) inset",
@@ -179,10 +179,10 @@ function WhenInactiveAndMeetingEndedOnboarding({ disabled, onClick }: { disabled
       onClick={onClick}
       className={cn(
         "w-28 h-9 rounded-full outline-none p-0 flex items-center justify-center gap-1 text-xs font-medium",
-        "bg-neutral-200 border-2 border-neutral-400 text-neutral-600",
+        "bg-muted border-2 border-border text-muted-foreground",
         "shadow-[0_0_0_2px_rgba(255,255,255,0.8)_inset]",
         !disabled
-          ? "hover:bg-neutral-300 hover:text-neutral-800 hover:border-neutral-500 transition-all hover:scale-95 cursor-pointer"
+          ? "hover:bg-accent hover:text-accent-foreground hover:border-border transition-all hover:scale-95 cursor-pointer"
           : "opacity-10 cursor-progress",
       )}
     >
@@ -308,7 +308,7 @@ function AudioControlButton({
       className="w-full"
       disabled={disabled}
     >
-      <Icon className={cn(isMuted ? "text-neutral-500" : "", disabled && "text-neutral-300")} size={20} />
+      <Icon className={cn(isMuted ? "text-muted-foreground" : "", disabled && "text-muted-foreground/50")} size={20} />
       {!disabled && <SoundIndicator input={type} size="long" />}
     </Button>
   );

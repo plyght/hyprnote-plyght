@@ -21,6 +21,7 @@ import {
 import { Input } from "@hypr/ui/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@hypr/ui/components/ui/select";
 import { Switch } from "@hypr/ui/components/ui/switch";
+import { useTheme } from "@hypr/ui/contexts/theme";
 
 type ISO_639_1_CODE = keyof typeof LANGUAGES_ISO_639_1;
 const SUPPORTED_LANGUAGES: ISO_639_1_CODE[] = [
@@ -81,6 +82,7 @@ type Schema = z.infer<typeof schema>;
 export default function General() {
   const { t } = useLingui();
   const queryClient = useQueryClient();
+  const { theme, setTheme } = useTheme();
 
   const config = useQuery({
     queryKey: ["config", "general"],
@@ -251,6 +253,36 @@ export default function General() {
               </FormItem>
             )}
           />
+
+          <div className="flex flex-row items-center justify-between">
+            <div className="space-y-0.5">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                <Trans>Theme</Trans>
+              </label>
+              <p className="text-sm text-muted-foreground">
+                <Trans>Choose your preferred theme</Trans>
+              </p>
+            </div>
+            <Select
+              onValueChange={setTheme}
+              value={theme}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select theme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">
+                  <Trans>Light</Trans>
+                </SelectItem>
+                <SelectItem value="dark">
+                  <Trans>Dark</Trans>
+                </SelectItem>
+                <SelectItem value="system">
+                  <Trans>System</Trans>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
           <FormField
             control={form.control}

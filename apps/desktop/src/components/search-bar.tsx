@@ -32,15 +32,15 @@ export function SearchBar() {
     <div
       className={clsx([
         "w-60 flex items-center gap-2 h-[34px]",
-        "text-neutral-500 hover:text-neutral-600",
+        "text-muted-foreground hover:text-foreground",
         "border border-border rounded-md px-2 py-2 bg-transparent",
-        "hover:bg-white",
-        isFocused && "bg-white",
+        "hover:bg-background",
+        isFocused && "bg-background",
         "transition-colors duration-200",
       ])}
       onClick={() => focusSearch()}
     >
-      <SearchIcon className="h-4 w-4 text-neutral-500" />
+      <SearchIcon className="h-4 w-4 text-muted-foreground" />
       <input
         ref={searchInputRef}
         type="text"
@@ -55,7 +55,7 @@ export function SearchBar() {
         ? (
           <XIcon
             onClick={() => clearSearch()}
-            className="h-4 w-4 text-neutral-400 hover:text-neutral-600"
+            className="h-4 w-4 text-muted-foreground hover:text-foreground"
           />
         )
         : <Shortcut macDisplay="⌘K" windowsDisplay="Ctrl+K" />}

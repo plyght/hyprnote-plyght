@@ -35,7 +35,7 @@ function ActualButton({ disabled }: { disabled: boolean }) {
           disabled={disabled}
           variant="ghost"
           size="icon"
-          className="hover:bg-neutral-200"
+          className="hover:bg-muted"
           onClick={createNewNote}
           aria-label="New Note"
         >

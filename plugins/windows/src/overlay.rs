@@ -28,28 +28,40 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
 
     tokio::spawn(async move {
         let state = app.state::<FakeWindowBounds>();
+        let mut last_ignore_state = true;
+        let mut last_focus_state = false;
 
         loop {
-            sleep(Duration::from_millis(1000 / 20)).await;
+            // Reduced polling frequency from 20Hz to 10Hz
+            sleep(Duration::from_millis(1000 / 10)).await;
 
             let map = state.0.read().await;
 
             let Some(windows) = map.get(window.label()) else {
-                window.set_ignore_cursor_events(true).ok();
+                if !last_ignore_state {
+                    window.set_ignore_cursor_events(true).ok();
+                    last_ignore_state = true;
+                }
                 continue;
             };
 
             if windows.is_empty() {
-                window.set_ignore_cursor_events(true).ok();
+                if !last_ignore_state {
+                    window.set_ignore_cursor_events(true).ok();
+                    last_ignore_state = true;
+                }
                 continue;
-            }
+            };
 
             let (Ok(window_position), Ok(mouse_position), Ok(scale_factor)) = (
                 window.outer_position(),
                 window.cursor_position(),
                 window.scale_factor(),
             ) else {
-                let _ = window.set_ignore_cursor_events(true);
+                if !last_ignore_state {
+                    let _ = window.set_ignore_cursor_events(true);
+                    last_ignore_state = true;
+                }
                 continue;
             };
 
@@ -74,15 +86,18 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
                 }
             }
 
-            window.set_ignore_cursor_events(ignore).ok();
+            // Only update cursor events if state changed
+            if ignore != last_ignore_state {
+                window.set_ignore_cursor_events(ignore).ok();
+                last_ignore_state = ignore;
+            }
 
             let focused = window.is_focused().unwrap_or(false);
-            if !ignore {
-                if !focused {
-                    window.set_focus().ok();
-                }
-            } else if focused {
-                window.set_ignore_cursor_events(ignore).ok();
+            if !ignore && !focused && !last_focus_state {
+                window.set_focus().ok();
+                last_focus_state = true;
+            } else if ignore && last_focus_state {
+                last_focus_state = false;
             }
         }
     });

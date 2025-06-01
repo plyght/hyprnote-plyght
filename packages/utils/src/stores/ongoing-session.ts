@@ -16,6 +16,7 @@ type State = {
 
 type Actions = {
   get: () => State & Actions;
+  cleanup: () => void;
   cancelEnhance: () => void;
   setEnhanceController: (controller: AbortController | null) => void;
   setHasShownConsent: (hasShown: boolean) => void;
@@ -82,6 +83,12 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
     return {
       ...initialState,
       get: () => get(),
+      cleanup: () => {
+        const { sessionEventUnlisten } = get();
+        if (sessionEventUnlisten) {
+          sessionEventUnlisten();
+        }
+      },
       cancelEnhance: () => {
       const { enhanceController } = get();
       if (enhanceController) {

@@ -1,4 +1,5 @@
 use crate::{HyprWindow, KnownPosition, WindowsPluginExt, FakeWindowBounds, OverlayBound};
+use std::collections::HashMap;
 
 #[tauri::command]
 #[specta::specta]
@@ -119,26 +120,25 @@ pub async fn window_emit_navigate(
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn window_set_overlay_bounds(
-    window: tauri::Window,
-    state: tauri::State<'_, FakeWindowBounds>,
+async fn update_bounds(
+    window: &tauri::Window,
+    state: &tauri::State<'_, FakeWindowBounds>,
     name: String,
     bounds: OverlayBound,
 ) -> Result<(), String> {
+    #[cfg(debug_assertions)]
+    println!("Setting bounds for {}: {:?}", name, bounds);
     let mut state = state.0.write().await;
     let map = state.entry(window.label().to_string()).or_default();
     map.insert(name, bounds);
-
+    #[cfg(debug_assertions)]
+    println!("Total bounds for window {}: {}", window.label(), map.len());
     Ok(())
 }
 
-#[tauri::command]
-#[specta::specta]
-pub async fn window_remove_overlay_bounds(
-    window: tauri::Window,
-    state: tauri::State<'_, FakeWindowBounds>,
+async fn remove_bounds(
+    window: &tauri::Window,
+    state: &tauri::State<'_, FakeWindowBounds>,
     name: String,
 ) -> Result<(), String> {
     let mut state = state.0.write().await;
@@ -153,6 +153,27 @@ pub async fn window_remove_overlay_bounds(
     }
 
     Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn window_set_overlay_bounds(
+    window: tauri::Window,
+    state: tauri::State<'_, FakeWindowBounds>,
+    name: String,
+    bounds: OverlayBound,
+) -> Result<(), String> {
+    update_bounds(&window, &state, name, bounds).await
+}
+
+#[tauri::command]
+#[specta::specta]
+pub async fn window_remove_overlay_bounds(
+    window: tauri::Window,
+    state: tauri::State<'_, FakeWindowBounds>,
+    name: String,
+) -> Result<(), String> {
+    remove_bounds(&window, &state, name).await
 }
 
 #[tauri::command]
@@ -163,12 +184,7 @@ pub async fn set_fake_window_bounds(
     bounds: OverlayBound,
     state: tauri::State<'_, FakeWindowBounds>,
 ) -> Result<(), String> {
-    println!("Setting fake window bounds for {}: {:?}", name, bounds);
-    let mut state = state.0.write().await;
-    let map = state.entry(window.label().to_string()).or_default();
-    map.insert(name, bounds);
-    println!("Total bounds for window {}: {}", window.label(), map.len());
-    Ok(())
+    update_bounds(&window, &state, name, bounds).await
 }
 
 #[tauri::command]
@@ -178,16 +194,5 @@ pub async fn remove_fake_window(
     name: String,
     state: tauri::State<'_, FakeWindowBounds>,
 ) -> Result<(), String> {
-    let mut state = state.0.write().await;
-    let Some(map) = state.get_mut(window.label()) else {
-        return Ok(());
-    };
-
-    map.remove(&name);
-
-    if map.is_empty() {
-        state.remove(window.label());
-    }
-
-    Ok(())
+    remove_bounds(&window, &state, name).await
 }

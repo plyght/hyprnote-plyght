@@ -31,6 +31,17 @@ function Component() {
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   
+  // Settings toggles state
+  const [autoStartRecording, setAutoStartRecording] = useState(() => {
+    return localStorage.getItem('autoStartRecording') === 'true';
+  });
+  const [showAudioLevels, setShowAudioLevels] = useState(() => {
+    return localStorage.getItem('showAudioLevels') !== 'false'; // default true
+  });
+  const [alwaysOnTop, setAlwaysOnTop] = useState(() => {
+    return localStorage.getItem('alwaysOnTop') !== 'false'; // default true
+  });
+  
   const isRecording = recordingStatus !== "inactive";
   const isRecordingActive = recordingStatus === "running_active";
   const isRecordingPaused = recordingStatus === "running_paused";
@@ -128,9 +139,17 @@ function Component() {
 
     const handleMouseMove = (e: MouseEvent) => {
       if (isDragging) {
+        // Get toolbar dimensions for clamping
+        const toolbarWidth = toolbarRef.current?.getBoundingClientRect().width || 200;
+        const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height || 60;
+        
+        // Clamp position to keep toolbar on screen
+        const clampedX = Math.max(0, Math.min(window.innerWidth - toolbarWidth, e.clientX - dragOffset.x));
+        const clampedY = Math.max(0, Math.min(window.innerHeight - toolbarHeight, e.clientY - dragOffset.y));
+        
         const newPosition = {
-          x: e.clientX - dragOffset.x,
-          y: e.clientY - dragOffset.y,
+          x: clampedX,
+          y: clampedY,
         };
         setPosition(newPosition);
         // Update bounds immediately during drag for smooth interaction
@@ -252,6 +271,24 @@ function Component() {
     setShowSettings(!showSettings);
     console.log(`[Control Bar] ${showSettings ? "Closed" : "Opened"} settings`);
     setTimeout(updateOverlayBounds, 0);
+  };
+
+  const toggleAutoStart = () => {
+    const newValue = !autoStartRecording;
+    setAutoStartRecording(newValue);
+    localStorage.setItem('autoStartRecording', newValue.toString());
+  };
+
+  const toggleAudioLevels = () => {
+    const newValue = !showAudioLevels;
+    setShowAudioLevels(newValue);
+    localStorage.setItem('showAudioLevels', newValue.toString());
+  };
+
+  const toggleAlwaysOnTop = () => {
+    const newValue = !alwaysOnTop;
+    setAlwaysOnTop(newValue);
+    localStorage.setItem('alwaysOnTop', newValue.toString());
   };
   
 
@@ -445,27 +482,54 @@ function SettingsPopup({ isOpen, onClose, position }: {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Auto-start recording</span>
-            <div className="w-10 h-6 bg-white/20 rounded-full relative transition-colors">
-              <div className="w-4 h-4 bg-white rounded-full absolute top-1 left-1 transition-transform" />
-            </div>
+            <button
+              onClick={toggleAutoStart}
+              className={`w-10 h-6 rounded-full relative transition-colors ${
+                autoStartRecording ? 'bg-blue-500/60' : 'bg-white/20'
+              }`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                autoStartRecording ? 'translate-x-4' : 'translate-x-0'
+              }`} />
+            </button>
           </div>
           
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Show audio levels</span>
-            <div className="w-10 h-6 bg-blue-500/60 rounded-full relative">
-              <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-transform" />
-            </div>
+            <button
+              onClick={toggleAudioLevels}
+              className={`w-10 h-6 rounded-full relative transition-colors ${
+                showAudioLevels ? 'bg-blue-500/60' : 'bg-white/20'
+              }`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                showAudioLevels ? 'translate-x-4' : 'translate-x-0'
+              }`} />
+            </button>
           </div>
           
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Always on top</span>
-            <div className="w-10 h-6 bg-blue-500/60 rounded-full relative">
-              <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-transform" />
-            </div>
+            <button
+              onClick={toggleAlwaysOnTop}
+              className={`w-10 h-6 rounded-full relative transition-colors ${
+                alwaysOnTop ? 'bg-blue-500/60' : 'bg-white/20'
+              }`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                alwaysOnTop ? 'translate-x-4' : 'translate-x-0'
+              }`} />
+            </button>
           </div>
           
           <div className="pt-2 border-t border-white/10">
-            <button className="w-full bg-white/15 hover:bg-white/25 text-white text-sm py-2 px-3 rounded-lg transition-colors">
+            <button 
+              onClick={async () => {
+                await windowsCommands.windowShow({type:"settings"});
+                onClose();
+              }}
+              className="w-full bg-white/15 hover:bg-white/25 text-white text-sm py-2 px-3 rounded-lg transition-colors"
+            >
               Open Main Settings
             </button>
           </div>

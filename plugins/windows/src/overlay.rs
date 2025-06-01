@@ -2,7 +2,7 @@ use std::{collections::HashMap, sync::Arc, time::Duration};
 use tauri::{AppHandle, Manager, WebviewWindow};
 use tokio::{sync::RwLock, time::sleep};
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize, specta::Type)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, specta::Type, Clone, Copy)]
 pub struct OverlayBound {
     pub x: f64,
     pub y: f64,
@@ -15,16 +15,24 @@ pub struct OverlayState {
     pub bounds: Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>,
 }
 
+pub struct FakeWindowBounds(pub Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>);
+
+impl Default for FakeWindowBounds {
+    fn default() -> Self {
+        Self(Arc::new(RwLock::new(HashMap::new())))
+    }
+}
+
 pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
     window.set_ignore_cursor_events(true).ok();
 
     tokio::spawn(async move {
-        let state = app.state::<OverlayState>();
+        let state = app.state::<FakeWindowBounds>();
 
         loop {
             sleep(Duration::from_millis(1000 / 20)).await;
 
-            let map = state.bounds.read().await;
+            let map = state.0.read().await;
 
             let Some(windows) = map.get(window.label()) else {
                 window.set_ignore_cursor_events(true).ok();

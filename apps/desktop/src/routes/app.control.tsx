@@ -26,7 +26,7 @@ function Component() {
   const updateOverlayBounds = async () => {
     if (controlRef.current) {
       const rect = controlRef.current.getBoundingClientRect();
-      await windowsCommands.windowSetOverlayBounds(currentWindowLabel, {
+      await windowsCommands.setFakeWindowBounds("control", {
         x: rect.left,
         y: rect.top,
         width: rect.width,
@@ -60,7 +60,7 @@ function Component() {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
-      windowsCommands.windowRemoveOverlayBounds(currentWindowLabel);
+      windowsCommands.removeFakeWindow("control");
     };
   }, [isDragging, dragOffset]);
 

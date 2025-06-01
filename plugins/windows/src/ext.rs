@@ -353,8 +353,9 @@ impl HyprWindow {
                 .min_inner_size(900.0, 600.0)
                 .build()?,
             Self::Control => {
-                let window = self
-                    .window_builder(app, "/app/control")
+                let mut builder = WebviewWindow::builder(app, self.label(), WebviewUrl::App("/app/control".into()))
+                    .title("")
+                    .disable_drag_drop_handler()
                     .maximized(false)
                     .resizable(false)
                     .fullscreen(false)
@@ -369,32 +370,58 @@ impl HyprWindow {
                     )
                     .skip_taskbar(true)
                     .position(0.0, 0.0)
-                    .transparent(true)
-                    .build()?;
+                    .transparent(true);
+
+                #[cfg(target_os = "macos")]
+                {
+                    builder = builder
+                        .title_bar_style(tauri::TitleBarStyle::Overlay)
+                        .hidden_title(true);
+                }
+
+                #[cfg(not(target_os = "macos"))]
+                {
+                    builder = builder.decorations(false);
+                }
+
+                let window = builder.build()?;
 
                 #[cfg(target_os = "macos")]
                 {
                     app.run_on_main_thread({
                         let window = window.clone();
-
-                        #[allow(deprecated)]
                         move || {
-                            use tauri_nspanel::cocoa::appkit::{NSWindowCollectionBehavior,NSMainMenuWindowLevel};
-                            use tauri_nspanel::WebviewWindowExt as NSPanelWebviewWindowExt;
-
-                            if let Ok(panel) = window.to_panel() {
-                                panel.set_level(NSMainMenuWindowLevel);
-                                panel.set_collection_behaviour(
-                                    NSWindowCollectionBehavior::NSWindowCollectionBehaviorTransient
-                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorMoveToActiveSpace
-                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorFullScreenAuxiliary
-                                        | NSWindowCollectionBehavior::NSWindowCollectionBehaviorIgnoresCycle,
-                                );
-
+                            use tauri_nspanel::cocoa::base::{id, YES};
+                            use tauri_nspanel::cocoa::appkit::{NSWindow, NSWindowButton};
+                            use tauri_nspanel::objc::{msg_send, sel, sel_impl};
+                            
+                            // Hide traffic lights using cocoa APIs
+                            if let Ok(ns_window) = window.ns_window() {
+                                unsafe {
+                                    let ns_window: id = ns_window as *mut std::ffi::c_void as id;
+                                    
+                                    // Get and hide the standard window buttons only
+                                    let close_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowCloseButton);
+                                    let miniaturize_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowMiniaturizeButton);
+                                    let zoom_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowZoomButton);
+                                    
+                                    if !close_button.is_null() {
+                                        let _: () = msg_send![close_button, setHidden: YES];
+                                    }
+                                    if !miniaturize_button.is_null() {
+                                        let _: () = msg_send![miniaturize_button, setHidden: YES];
+                                    }
+                                    if !zoom_button.is_null() {
+                                        let _: () = msg_send![zoom_button, setHidden: YES];
+                                    }
+                                    
+                                    // Make title bar transparent instead of changing style mask
+                                    let _: () = msg_send![ns_window, setTitlebarAppearsTransparent: YES];
+                                    let _: () = msg_send![ns_window, setMovableByWindowBackground: YES];
+                                }
                             }
                         }
-                    })
-                    .ok();
+                    }).ok();
                 }
 
                 crate::spawn_overlay_listener(app.clone(), window.clone());

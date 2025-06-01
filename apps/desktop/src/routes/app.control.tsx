@@ -426,6 +426,12 @@ function Component() {
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)}
         position={position}
+        autoStartRecording={autoStartRecording}
+        showAudioLevels={showAudioLevels}
+        alwaysOnTop={alwaysOnTop}
+        toggleAutoStart={toggleAutoStart}
+        toggleAudioLevels={toggleAudioLevels}
+        toggleAlwaysOnTop={toggleAlwaysOnTop}
       />
     </div>
   );
@@ -458,10 +464,26 @@ function IconButton({ onClick, children, className = "", tooltip = "", disabled 
 }
 
 // Settings popup component
-function SettingsPopup({ isOpen, onClose, position }: {
+function SettingsPopup({ 
+  isOpen, 
+  onClose, 
+  position, 
+  autoStartRecording,
+  showAudioLevels,
+  alwaysOnTop,
+  toggleAutoStart,
+  toggleAudioLevels,
+  toggleAlwaysOnTop
+}: {
   isOpen: boolean;
   onClose: () => void;
   position: { x: number; y: number };
+  autoStartRecording: boolean;
+  showAudioLevels: boolean;
+  alwaysOnTop: boolean;
+  toggleAutoStart: () => void;
+  toggleAudioLevels: () => void;
+  toggleAlwaysOnTop: () => void;
 }) {
   if (!isOpen) return null;
 

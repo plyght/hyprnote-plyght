@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Camera, Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 
 import { commands as windowsCommands } from "@hypr/plugin-windows";
@@ -107,21 +107,58 @@ function Component() {
   
   const controlRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const settingsPopupRef = useRef<HTMLDivElement>(null);
 
   const updateOverlayBounds = async () => {
     emit("debug", "updateOverlayBounds called");
     emit("debug", `toolbarRef.current: ${toolbarRef.current ? 'exists' : 'null'}`);
+    emit("debug", `showSettings: ${showSettings}`);
+    emit("debug", `settingsPopupRef.current: ${settingsPopupRef.current ? 'exists' : 'null'}`);
     
     if (toolbarRef.current) {
-      const rect = toolbarRef.current.getBoundingClientRect();
-      const bounds = {
+      const toolbarRect = toolbarRef.current.getBoundingClientRect();
+      
+      let bounds = {
         x: position.x,
         y: position.y, 
-        width: rect.width,
-        height: rect.height,
+        width: toolbarRect.width,
+        height: toolbarRect.height,
       };
+
+      // If settings popup is open, calculate combined bounds
+      if (showSettings) {
+        // Calculate popup position manually based on how it's positioned in the component
+        const isNearTop = position.y < 250;
+        const popupTop = isNearTop ? position.y + 60 : position.y - 200;
+        const popupLeft = position.x;
+        const popupWidth = 256; // w-64 in Tailwind = 256px
+        const popupHeight = 200; // Approximate height of the settings popup
+        
+        // Calculate the combined bounding box
+        const minX = Math.min(position.x, popupLeft);
+        const minY = Math.min(position.y, popupTop);
+        const maxX = Math.max(position.x + toolbarRect.width, popupLeft + popupWidth);
+        const maxY = Math.max(position.y + toolbarRect.height, popupTop + popupHeight);
+        
+        bounds = {
+          x: minX,
+          y: minY,
+          width: maxX - minX,
+          height: maxY - minY,
+        };
+        
+        emit("debug", `Popup position: ${JSON.stringify({x: popupLeft, y: popupTop, width: popupWidth, height: popupHeight})}`);
+        emit("debug", `Combined bounds: ${JSON.stringify(bounds)}`);
+        
+        // Double-check with actual rect if ref is available
+        if (settingsPopupRef.current) {
+          const popupRect = settingsPopupRef.current.getBoundingClientRect();
+          emit("debug", `Actual popup rect: ${JSON.stringify({x: popupRect.left, y: popupRect.top, width: popupRect.width, height: popupRect.height})}`);
+        }
+      }
+      
       emit("debug", `Toolbar position: ${JSON.stringify(position)}`);
-      emit("debug", `Toolbar rect: ${JSON.stringify({x: rect.x, y: rect.y, width: rect.width, height: rect.height})}`);
+      emit("debug", `Toolbar rect: ${JSON.stringify({x: toolbarRect.x, y: toolbarRect.y, width: toolbarRect.width, height: toolbarRect.height})}`);
       emit("debug", `Setting overlay bounds: ${JSON.stringify(bounds)}`);
       emit("debug", `Window dimensions: ${JSON.stringify({ width: window.innerWidth, height: window.innerHeight })}`);
       
@@ -190,6 +227,20 @@ function Component() {
     // Update bounds whenever position changes
     updateOverlayBounds();
   }, [position]);
+
+  // Separate effect for settings popup to ensure it's rendered
+  useEffect(() => {
+    if (showSettings) {
+      // Wait for popup to be rendered and ref to be available
+      const timer = setTimeout(() => {
+        updateOverlayBounds();
+      }, 50);
+      return () => clearTimeout(timer);
+    } else {
+      // Immediately update when popup closes
+      updateOverlayBounds();
+    }
+  }, [showSettings]);
 
   // Also update bounds after initial render
   useEffect(() => {
@@ -287,7 +338,6 @@ function Component() {
   const openSettings = () => {
     setShowSettings(!showSettings);
     console.log(`[Control Bar] ${showSettings ? "Closed" : "Opened"} settings`);
-    setTimeout(updateOverlayBounds, 0);
   };
 
   const toggleAutoStart = () => {
@@ -423,6 +473,7 @@ function Component() {
       
       {/* Settings Popup */}
       <SettingsPopup 
+        ref={settingsPopupRef}
         isOpen={showSettings} 
         onClose={() => setShowSettings(false)}
         position={position}
@@ -464,17 +515,7 @@ function IconButton({ onClick, children, className = "", tooltip = "", disabled 
 }
 
 // Settings popup component
-function SettingsPopup({ 
-  isOpen, 
-  onClose, 
-  position, 
-  autoStartRecording,
-  showAudioLevels,
-  alwaysOnTop,
-  toggleAutoStart,
-  toggleAudioLevels,
-  toggleAlwaysOnTop
-}: {
+const SettingsPopup = React.forwardRef<HTMLDivElement, {
   isOpen: boolean;
   onClose: () => void;
   position: { x: number; y: number };
@@ -484,7 +525,17 @@ function SettingsPopup({
   toggleAutoStart: () => void;
   toggleAudioLevels: () => void;
   toggleAlwaysOnTop: () => void;
-}) {
+}>(({ 
+  isOpen, 
+  onClose, 
+  position, 
+  autoStartRecording,
+  showAudioLevels,
+  alwaysOnTop,
+  toggleAutoStart,
+  toggleAudioLevels,
+  toggleAlwaysOnTop
+}, ref) => {
   if (!isOpen) return null;
 
   // Smart positioning - open downwards if close to top, upwards otherwise
@@ -493,6 +544,7 @@ function SettingsPopup({
 
   return (
     <div
+      ref={ref}
       className="absolute z-50"
       style={{
         left: position.x,
@@ -501,6 +553,7 @@ function SettingsPopup({
     >
       <div className="rounded-2xl shadow-2xl p-4 w-64"
         style={{
+          pointerEvents: 'auto',
           background: 'rgba(0, 0, 0, 0.85)',
           boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
         }}
@@ -576,4 +629,6 @@ function SettingsPopup({
       </div>
     </div>
   );
-}
+});
+
+SettingsPopup.displayName = "SettingsPopup";

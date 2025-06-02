@@ -12,6 +12,24 @@ export const Route = createFileRoute("/app/control")({
 
 function Component() {
   const [position, setPosition] = useState(() => {
+    // Try to load saved position first
+    const savedPosition = localStorage.getItem('floating-control-position');
+    if (savedPosition) {
+      try {
+        const parsed = JSON.parse(savedPosition);
+        // Validate position is within current screen bounds
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        if (parsed.x >= 0 && parsed.x <= windowWidth - 200 && 
+            parsed.y >= 0 && parsed.y <= windowHeight - 100) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('Failed to parse saved position:', e);
+      }
+    }
+    
+    // Fall back to default position
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const initialX = (windowWidth - 200) / 2;
@@ -126,7 +144,7 @@ function Component() {
   const controlRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const settingsPopupRef = useRef<HTMLDivElement>(null);
-  const updateScheduledRef = useRef(false);
+  const boundsUpdateTimeoutRef = useRef<number | null>(null);
 
   const updateOverlayBounds = async () => {
     if (toolbarRef.current) {
@@ -160,7 +178,6 @@ function Component() {
           width: maxX - minX,
           height: maxY - minY,
         };
-        
       }
       
       try {
@@ -169,6 +186,17 @@ function Component() {
         console.error("Failed to set fake window bounds:", error);
       }
     }
+  };
+
+  // Debounced version to prevent excessive bounds updates
+  const debouncedUpdateBounds = () => {
+    if (boundsUpdateTimeoutRef.current) {
+      clearTimeout(boundsUpdateTimeoutRef.current);
+    }
+    boundsUpdateTimeoutRef.current = window.setTimeout(() => {
+      updateOverlayBounds();
+      boundsUpdateTimeoutRef.current = null;
+    }, 100); // Increased debounce delay to 100ms for better stability
   };
 
   const handleToolbarClick = (e: React.MouseEvent) => {
@@ -200,69 +228,129 @@ function Component() {
       };
       
       setPosition(newPosition);
-      
-      // Simple throttling - update bounds every few frames during drag
-      if (!updateScheduledRef.current) {
-        updateScheduledRef.current = true;
-        setTimeout(() => {
-          updateOverlayBounds();
-          updateScheduledRef.current = false;
-        }, 16); // ~60fps
-      }
     };
 
     const handleMouseUp = () => {
       setIsDragging(false);
-      // Immediately update bounds when drag ends to ensure toolbar stays responsive
+      // Force bounds update after drag completes
       setTimeout(() => {
         updateOverlayBounds();
-      }, 10);
+      }, 50);
+    };
+
+    // Handle desktop switching and window focus changes on Mac  
+    const handleWindowFocus = () => {
+      // Smart recovery on focus - only aggressive if needed
+      smartRecovery();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Smart recovery on visibility change
+        smartRecovery();
+      }
+    };
+
+    const handleWindowResize = () => {
+      // Lightweight resize handling
+      debouncedUpdateBounds();
+    };
+
+    const handleMouseEnter = () => {
+      // Force bounds recalculation when mouse enters the control area
+      // This helps recover from Mission Control coordinate issues
+      updateOverlayBounds();
+    };
+
+    // Lightweight recovery: only trigger on actual user interaction
+    let lastInteractionTime = Date.now();
+    const trackInteraction = () => {
+      lastInteractionTime = Date.now();
+    };
+    
+    // Only do aggressive reset if it's been a while since last interaction
+    const smartRecovery = () => {
+      const timeSinceInteraction = Date.now() - lastInteractionTime;
+      if (timeSinceInteraction > 10000) { // 10 seconds of no interaction
+        windowsCommands.removeFakeWindow("control").then(() => {
+          setTimeout(updateOverlayBounds, 100);
+        }).catch(console.error);
+      } else {
+        // Just do a simple bounds update
+        updateOverlayBounds();
+      }
+      trackInteraction();
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("resize", handleWindowResize);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     
-    updateOverlayBounds();
+    // Initial bounds setup - use longer delay to ensure DOM is ready and position is loaded
+    setTimeout(() => {
+      console.log(`[Control Bar] Setting up initial bounds at position:`, position);
+      updateOverlayBounds();
+    }, 200);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("resize", handleWindowResize);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (boundsUpdateTimeoutRef.current) {
+        clearTimeout(boundsUpdateTimeoutRef.current);
+      }
       windowsCommands.removeFakeWindow("control");
     };
   }, []); // Remove dependencies to prevent re-creating event listeners
 
   useEffect(() => {
     // Update bounds whenever position changes (safety mechanism)
-    const timer = setTimeout(() => {
-      updateOverlayBounds();
-    }, 50);
-    return () => clearTimeout(timer);
+    debouncedUpdateBounds();
+    
+    // Save position to localStorage for persistence across window recreations
+    localStorage.setItem('floating-control-position', JSON.stringify(position));
   }, [position]);
 
   // Separate effect for settings popup to ensure it's rendered
   useEffect(() => {
-    if (showSettings) {
-      // Wait for popup to be rendered and ref to be available
-      const timer = setTimeout(() => {
-        updateOverlayBounds();
-      }, 50);
-      return () => clearTimeout(timer);
-    } else {
-      // Add delay when popup closes to ensure DOM has updated
-      const timer = setTimeout(() => {
-        updateOverlayBounds();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+    // Wait for popup to be rendered/removed and update bounds
+    debouncedUpdateBounds();
   }, [showSettings]);
 
-  // Also update bounds after initial render
+  // Effect to detect and sync to actual rendered position (handles window recreation)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      updateOverlayBounds();
-    }, 100);
-    return () => clearTimeout(timer);
-  }, []);
+    const detectActualPosition = () => {
+      if (controlRef.current) {
+        const rect = controlRef.current.getBoundingClientRect();
+        const actualPosition = { x: rect.left, y: rect.top };
+        
+        console.log(`[Control Bar] Detected actual rendered position:`, actualPosition);
+        console.log(`[Control Bar] React state position:`, position);
+        
+        // If there's a significant difference, sync React state to actual position
+        const threshold = 10; // pixels
+        if (Math.abs(actualPosition.x - position.x) > threshold || 
+            Math.abs(actualPosition.y - position.y) > threshold) {
+          console.log(`[Control Bar] Position mismatch detected, syncing React state to actual position`);
+          setPosition(actualPosition);
+        } else {
+          // Positions match, just update bounds
+          updateOverlayBounds();
+        }
+      }
+    };
+    
+    // Multiple attempts to catch the actual position
+    const timers = [100, 200, 500].map(delay => 
+      setTimeout(detectActualPosition, delay)
+    );
+    
+    return () => timers.forEach(clearTimeout);
+  }, []); // Only run once on mount
 
   const handleMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -374,12 +462,34 @@ function Component() {
           top: position.y,
           transition: isDragging ? "none" : "all 0.1s ease",
         }}
-        ref={controlRef}
+        ref={(el) => {
+          controlRef.current = el;
+          // Immediate position detection when ref is set
+          if (el) {
+            setTimeout(() => {
+              const rect = el.getBoundingClientRect();
+              const actualPosition = { x: rect.left, y: rect.top };
+              console.log(`[Control Bar] Immediate position detection:`, actualPosition, `vs state:`, position);
+              
+              const threshold = 10;
+              if (Math.abs(actualPosition.x - position.x) > threshold || 
+                  Math.abs(actualPosition.y - position.y) > threshold) {
+                console.log(`[Control Bar] Immediate position sync needed`);
+                setPosition(actualPosition);
+              }
+            }, 50);
+          }
+        }}
       >
         <div
           className="rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-200 p-3"
           ref={toolbarRef}
           onClick={handleToolbarClick}
+          onMouseEnter={() => {
+            // Lightweight hover recovery
+            trackInteraction();
+            updateOverlayBounds();
+          }}
           style={{ 
             pointerEvents: 'auto',
             background: 'rgba(0, 0, 0, 0.85)',

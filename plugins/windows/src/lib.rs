@@ -80,11 +80,6 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
             }
 
             {
-                let state = OverlayState::default();
-                app.manage(state);
-            }
-
-            {
                 let fake_bounds_state = FakeWindowBounds::default();
                 app.manage(fake_bounds_state);
             }

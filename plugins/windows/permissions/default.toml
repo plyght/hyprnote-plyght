@@ -2,7 +2,8 @@
 description = "Default permissions for the plugin"
 permissions = [
     "allow-window-show",
-    "allow-window-hide",
+    "allow-window-close",
+    "allow-window-hide", 
     "allow-window-destroy",
     "allow-window-position",
     "allow-window-resize-default",

@@ -10,11 +10,6 @@ pub struct OverlayBound {
     pub height: f64,
 }
 
-#[derive(Default)]
-pub struct OverlayState {
-    pub bounds: Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>,
-}
-
 pub struct FakeWindowBounds(pub Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>);
 
 impl Default for FakeWindowBounds {
@@ -32,7 +27,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
         let mut last_focus_state = false;
 
         loop {
-            // Reduced polling frequency from 20Hz to 10Hz
             sleep(Duration::from_millis(1000 / 10)).await;
 
             let map = state.0.read().await;
@@ -83,7 +77,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
                 }
             }
 
-            // Only update cursor events if state changed
             if ignore != last_ignore_state {
                 window.set_ignore_cursor_events(ignore).ok();
                 last_ignore_state = ignore;

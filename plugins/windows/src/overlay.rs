@@ -67,14 +67,11 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
 
             let mut ignore = true;
 
-            for (name, bounds) in windows.iter() {
+            for (_name, bounds) in windows.iter() {
                 let x_min = (window_position.x as f64) + bounds.x * scale_factor;
                 let x_max = (window_position.x as f64) + (bounds.x + bounds.width) * scale_factor;
                 let y_min = (window_position.y as f64) + bounds.y * scale_factor;
                 let y_max = (window_position.y as f64) + (bounds.y + bounds.height) * scale_factor;
-
-                // println!("Checking bounds for {}: mouse({}, {}) vs bounds({}-{}, {}-{})", 
-                //     name, mouse_position.x, mouse_position.y, x_min, x_max, y_min, y_max);
 
                 if mouse_position.x >= x_min
                     && mouse_position.x <= x_max

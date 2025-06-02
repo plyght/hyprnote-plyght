@@ -1,5 +1,4 @@
-use crate::{HyprWindow, KnownPosition, WindowsPluginExt, FakeWindowBounds, OverlayBound};
-use std::collections::HashMap;
+use crate::{FakeWindowBounds, HyprWindow, KnownPosition, OverlayBound, WindowsPluginExt};
 
 #[tauri::command]
 #[specta::specta]
@@ -126,13 +125,9 @@ async fn update_bounds(
     name: String,
     bounds: OverlayBound,
 ) -> Result<(), String> {
-    #[cfg(debug_assertions)]
-    println!("Setting bounds for {}: {:?}", name, bounds);
     let mut state = state.0.write().await;
     let map = state.entry(window.label().to_string()).or_default();
     map.insert(name, bounds);
-    #[cfg(debug_assertions)]
-    println!("Total bounds for window {}: {}", window.label(), map.len());
     Ok(())
 }
 

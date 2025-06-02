@@ -353,24 +353,28 @@ impl HyprWindow {
                 .min_inner_size(900.0, 600.0)
                 .build()?,
             Self::Control => {
-                let mut builder = WebviewWindow::builder(app, self.label(), WebviewUrl::App("/app/control".into()))
-                    .title("")
-                    .disable_drag_drop_handler()
-                    .maximized(false)
-                    .resizable(false)
-                    .fullscreen(false)
-                    .shadow(false)
-                    .always_on_top(true)
-                    .visible_on_all_workspaces(true)
-                    .accept_first_mouse(true)
-                    .content_protected(true)
-                    .inner_size(
-                        (monitor.size().width as f64) / monitor.scale_factor(),
-                        (monitor.size().height as f64) / monitor.scale_factor(),
-                    )
-                    .skip_taskbar(true)
-                    .position(0.0, 0.0)
-                    .transparent(true);
+                let mut builder = WebviewWindow::builder(
+                    app,
+                    self.label(),
+                    WebviewUrl::App("/app/control".into()),
+                )
+                .title("")
+                .disable_drag_drop_handler()
+                .maximized(false)
+                .resizable(false)
+                .fullscreen(false)
+                .shadow(false)
+                .always_on_top(true)
+                .visible_on_all_workspaces(true)
+                .accept_first_mouse(true)
+                .content_protected(true)
+                .inner_size(
+                    (monitor.size().width as f64) / monitor.scale_factor(),
+                    (monitor.size().height as f64) / monitor.scale_factor(),
+                )
+                .skip_taskbar(true)
+                .position(0.0, 0.0)
+                .transparent(true);
 
                 #[cfg(target_os = "macos")]
                 {
@@ -388,40 +392,42 @@ impl HyprWindow {
 
                 #[cfg(target_os = "macos")]
                 {
+                    #[allow(deprecated, unexpected_cfgs)]
                     app.run_on_main_thread({
                         let window = window.clone();
                         move || {
-                            use tauri_nspanel::cocoa::base::{id, YES};
                             use tauri_nspanel::cocoa::appkit::{NSWindow, NSWindowButton};
+                            use tauri_nspanel::cocoa::base::{id, YES};
                             use tauri_nspanel::objc::{msg_send, sel, sel_impl};
-                            
-                            // Hide traffic lights using cocoa APIs
+
                             if let Ok(ns_window) = window.ns_window() {
                                 unsafe {
                                     let ns_window: id = ns_window as *mut std::ffi::c_void as id;
-                                    
-                                    // Get and hide the standard window buttons only
-                                    let close_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowCloseButton);
-                                    let miniaturize_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowMiniaturizeButton);
-                                    let zoom_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowZoomButton);
-                                    
-                                    if !close_button.is_null() {
-                                        let _: () = msg_send![close_button, setHidden: YES];
-                                    }
-                                    if !miniaturize_button.is_null() {
-                                        let _: () = msg_send![miniaturize_button, setHidden: YES];
-                                    }
-                                    if !zoom_button.is_null() {
-                                        let _: () = msg_send![zoom_button, setHidden: YES];
-                                    }
-                                    
+
+                                    [
+                                        NSWindowButton::NSWindowCloseButton,
+                                        NSWindowButton::NSWindowMiniaturizeButton,
+                                        NSWindowButton::NSWindowZoomButton,
+                                    ]
+                                    .iter()
+                                    .map(|button_type| {
+                                        NSWindow::standardWindowButton_(ns_window, *button_type)
+                                    })
+                                    .filter(|button| !button.is_null())
+                                    .for_each(|button| {
+                                        let _: () = msg_send![button, setHidden: YES];
+                                    });
+
                                     // Make title bar transparent instead of changing style mask
-                                    let _: () = msg_send![ns_window, setTitlebarAppearsTransparent: YES];
-                                    let _: () = msg_send![ns_window, setMovableByWindowBackground: YES];
+                                    let _: () =
+                                        msg_send![ns_window, setTitlebarAppearsTransparent: YES];
+                                    let _: () =
+                                        msg_send![ns_window, setMovableByWindowBackground: YES];
                                 }
                             }
                         }
-                    }).ok();
+                    })
+                    .ok();
                 }
 
                 crate::spawn_overlay_listener(app.clone(), window.clone());

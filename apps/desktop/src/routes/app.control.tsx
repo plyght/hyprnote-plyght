@@ -94,9 +94,13 @@ function Component() {
     });
     
     return () => {
-      unsubscribeSession.then(unlisten => unlisten());
-      unsubscribeMicState.then(unlisten => unlisten());
-      unsubscribeSpeakerState.then(unlisten => unlisten());
+      Promise.all([
+        unsubscribeSession.then(unlisten => unlisten()),
+        unsubscribeMicState.then(unlisten => unlisten()),
+        unsubscribeSpeakerState.then(unlisten => unlisten())
+      ]).catch(error => {
+        console.error("Error during cleanup:", error);
+      });
     };
   }, []);
   
@@ -108,6 +112,7 @@ function Component() {
   const controlRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const settingsPopupRef = useRef<HTMLDivElement>(null);
+  const updateScheduledRef = useRef(false);
 
   const updateOverlayBounds = async () => {
     emit("debug", "updateOverlayBounds called");
@@ -202,8 +207,14 @@ function Component() {
           y: clampedY,
         };
         setPosition(newPosition);
-        // Update bounds immediately during drag for smooth interaction
-        setTimeout(updateOverlayBounds, 0);
+        // Throttle bounds updates during drag to prevent IPC saturation
+        if (!updateScheduledRef.current) {
+          updateScheduledRef.current = true;
+          requestAnimationFrame(() => {
+            updateOverlayBounds();
+            updateScheduledRef.current = false;
+          });
+        }
       }
     };
 
@@ -265,7 +276,13 @@ function Component() {
 
   const captureScreenshot = () => {
     emit("debug", "Capture screenshot");
-    setTimeout(updateOverlayBounds, 0);
+    if (!updateScheduledRef.current) {
+      updateScheduledRef.current = true;
+      requestAnimationFrame(() => {
+        updateOverlayBounds();
+        updateScheduledRef.current = false;
+      });
+    }
   };
 
   const toggleRecording = async () => {
@@ -291,7 +308,13 @@ function Component() {
     } finally {
       setRecordingLoading(false);
     }
-    setTimeout(updateOverlayBounds, 0);
+    if (!updateScheduledRef.current) {
+      updateScheduledRef.current = true;
+      requestAnimationFrame(() => {
+        updateOverlayBounds();
+        updateScheduledRef.current = false;
+      });
+    }
   };
   
   const pauseRecording = async () => {
@@ -306,7 +329,13 @@ function Component() {
     } finally {
       setRecordingLoading(false);
     }
-    setTimeout(updateOverlayBounds, 0);
+    if (!updateScheduledRef.current) {
+      updateScheduledRef.current = true;
+      requestAnimationFrame(() => {
+        updateOverlayBounds();
+        updateScheduledRef.current = false;
+      });
+    }
   };
   
   const toggleMic = async () => {
@@ -508,6 +537,7 @@ function IconButton({ onClick, children, className = "", tooltip = "", disabled 
       disabled={disabled}
       className={`p-2 bg-white/15 backdrop-blur-sm rounded-xl text-white shadow-lg hover:bg-white/25 active:bg-white/35 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 hover:border-white/20 ${className}`}
       title={tooltip}
+      aria-label={tooltip}
     >
       {children}
     </button>

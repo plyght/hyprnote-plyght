@@ -223,24 +223,31 @@ impl HyprWindow {
     }
 
     fn close(&self, app: &AppHandle<tauri::Wry>) -> Result<(), crate::Error> {
-        if !cfg!(target_os = "macos") || *self != HyprWindow::Control {
-            if let Some(window) = self.get(app) {
-                let _ = window.close();
+        match self {
+            HyprWindow::Control => {
+                #[cfg(target_os = "macos")]
+                {
+                    use tauri_nspanel::ManagerExt;
+                    if let Ok(panel) = app.get_webview_panel(&HyprWindow::Control.label()) {
+                        let _ = app.run_on_main_thread({
+                            let panel = panel.clone();
+                            move || {
+                                panel.set_released_when_closed(true);
+                                panel.close();
+                            }
+                        });
+                    }
+                }
+                #[cfg(not(target_os = "macos"))]
+                {
+                    if let Some(window) = self.get(app) {
+                        let _ = window.close();
+                    }
+                }
             }
-        }
-
-        if *self == HyprWindow::Control {
-            #[cfg(target_os = "macos")]
-            {
-                use tauri_nspanel::ManagerExt;
-                if let Ok(panel) = app.get_webview_panel(&HyprWindow::Control.label()) {
-                    let _ = app.run_on_main_thread({
-                        let panel = panel.clone();
-                        move || {
-                            panel.set_released_when_closed(true);
-                            panel.close();
-                        }
-                    });
+            _ => {
+                if let Some(window) = self.get(app) {
+                    let _ = window.close();
                 }
             }
         }

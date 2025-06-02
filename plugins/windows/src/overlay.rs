@@ -59,7 +59,9 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
                 window.scale_factor(),
             ) else {
                 if !last_ignore_state {
-                    let _ = window.set_ignore_cursor_events(true);
+                    if let Err(e) = window.set_ignore_cursor_events(true) {
+                        log::warn!("Failed to set ignore cursor events: {}", e);
+                    }
                     last_ignore_state = true;
                 }
                 continue;
@@ -88,14 +90,20 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
 
             // Only update cursor events if state changed
             if ignore != last_ignore_state {
-                window.set_ignore_cursor_events(ignore).ok();
+                if let Err(e) = window.set_ignore_cursor_events(ignore) {
+                    log::warn!("Failed to set ignore cursor events: {}", e);
+                }
                 last_ignore_state = ignore;
             }
 
             let focused = window.is_focused().unwrap_or(false);
             if !ignore && !focused && !last_focus_state {
-                window.set_focus().ok();
-                last_focus_state = true;
+                if window.set_focus().is_ok() {
+                    // Verify focus was actually gained
+                    if window.is_focused().unwrap_or(false) {
+                        last_focus_state = true;
+                    }
+                }
             } else if ignore && last_focus_state {
                 last_focus_state = false;
             }

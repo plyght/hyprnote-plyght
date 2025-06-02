@@ -470,6 +470,9 @@ function useAudioControls() {
       return newMuted;
     },
     onSuccess: () => refetchMicMuted(),
+    onError: (error) => {
+      console.error('Failed to toggle microphone mute:', error);
+    },
   });
 
   const toggleSpeakerMuted = useMutation({
@@ -481,6 +484,9 @@ function useAudioControls() {
       return newMuted;
     },
     onSuccess: () => refetchSpeakerMuted(),
+    onError: (error) => {
+      console.error('Failed to toggle speaker mute:', error);
+    },
   });
 
   return {

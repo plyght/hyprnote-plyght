@@ -296,13 +296,6 @@ function Component() {
     } finally {
       setRecordingLoading(false);
     }
-    if (!updateScheduledRef.current) {
-      updateScheduledRef.current = true;
-      requestAnimationFrame(() => {
-        updateOverlayBounds();
-        updateScheduledRef.current = false;
-      });
-    }
   };
   
   const pauseRecording = async () => {
@@ -315,13 +308,6 @@ function Component() {
       console.error("[Control Bar] Pause error:", error);
     } finally {
       setRecordingLoading(false);
-    }
-    if (!updateScheduledRef.current) {
-      updateScheduledRef.current = true;
-      requestAnimationFrame(() => {
-        updateOverlayBounds();
-        updateScheduledRef.current = false;
-      });
     }
   };
   

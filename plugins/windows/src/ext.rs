@@ -398,33 +398,34 @@ impl HyprWindow {
                     app.run_on_main_thread({
                         let window = window.clone();
                         move || {
-                            use tauri_nspanel::cocoa::base::{id, YES};
-                            use tauri_nspanel::cocoa::appkit::{NSWindow, NSWindowButton};
-                            use tauri_nspanel::objc::{msg_send, sel, sel_impl};
+                            use objc2::runtime::AnyObject;
+                            use objc2::msg_send;
                             
                             // Hide traffic lights using cocoa APIs
                             if let Ok(ns_window) = window.ns_window() {
                                 unsafe {
-                                    let ns_window: id = ns_window as *mut std::ffi::c_void as id;
+                                    let ns_window = ns_window as *mut AnyObject;
+                                    let ns_window = &*ns_window;
                                     
-                                    // Get and hide the standard window buttons only
-                                    let close_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowCloseButton);
-                                    let miniaturize_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowMiniaturizeButton);
-                                    let zoom_button: id = NSWindow::standardWindowButton_(ns_window, NSWindowButton::NSWindowZoomButton);
+                                    // Get and hide the standard window buttons using raw values
+                                    // NSWindowCloseButton = 0, NSWindowMiniaturizeButton = 1, NSWindowZoomButton = 2
+                                    let close_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 0u64];
+                                    let miniaturize_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 1u64];
+                                    let zoom_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 2u64];
                                     
                                     if !close_button.is_null() {
-                                        let _: () = msg_send![close_button, setHidden: YES];
+                                        let _: () = msg_send![close_button, setHidden: true];
                                     }
                                     if !miniaturize_button.is_null() {
-                                        let _: () = msg_send![miniaturize_button, setHidden: YES];
+                                        let _: () = msg_send![miniaturize_button, setHidden: true];
                                     }
                                     if !zoom_button.is_null() {
-                                        let _: () = msg_send![zoom_button, setHidden: YES];
+                                        let _: () = msg_send![zoom_button, setHidden: true];
                                     }
                                     
                                     // Make title bar transparent instead of changing style mask
-                                    let _: () = msg_send![ns_window, setTitlebarAppearsTransparent: YES];
-                                    let _: () = msg_send![ns_window, setMovableByWindowBackground: YES];
+                                    let _: () = msg_send![ns_window, setTitlebarAppearsTransparent: true];
+                                    let _: () = msg_send![ns_window, setMovableByWindowBackground: true];
                                 }
                             }
                         }

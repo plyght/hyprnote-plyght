@@ -15,6 +15,9 @@ specta-typescript = { workspace = true }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 tauri-nspanel = { workspace = true }
+objc2 = "0.5"
+objc2-app-kit = "0.2"
+objc2-foundation = "0.2"
 
 [dependencies]
 serde = { workspace = true }

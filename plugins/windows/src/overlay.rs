@@ -60,7 +60,7 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
             ) else {
                 if !last_ignore_state {
                     if let Err(e) = window.set_ignore_cursor_events(true) {
-                        log::warn!("Failed to set ignore cursor events: {}", e);
+                        tracing::warn!("Failed to set ignore cursor events: {}", e);
                     }
                     last_ignore_state = true;
                 }
@@ -91,7 +91,7 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) {
             // Only update cursor events if state changed
             if ignore != last_ignore_state {
                 if let Err(e) = window.set_ignore_cursor_events(ignore) {
-                    log::warn!("Failed to set ignore cursor events: {}", e);
+                    tracing::warn!("Failed to set ignore cursor events: {}", e);
                 }
                 last_ignore_state = ignore;
             }

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Camera, Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import { Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 
 import { commands as windowsCommands } from "@hypr/plugin-windows";
@@ -21,6 +21,19 @@ function Component() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  
+  // Use refs to store current values for event handlers
+  const isDraggingRef = useRef(false);
+  const dragOffsetRef = useRef({ x: 0, y: 0 });
+  
+  // Update refs whenever state changes
+  useEffect(() => {
+    isDraggingRef.current = isDragging;
+  }, [isDragging]);
+  
+  useEffect(() => {
+    dragOffsetRef.current = dragOffset;
+  }, [dragOffset]);
   
   // Recording state from listener plugin
   const [recordingStatus, setRecordingStatus] = useState<"inactive" | "running_active" | "running_paused">("inactive");
@@ -115,6 +128,7 @@ function Component() {
   const updateScheduledRef = useRef(false);
 
   const updateOverlayBounds = async () => {
+    console.log("[Control Bar] updateOverlayBounds called", { showSettings, position });
     emit("debug", "updateOverlayBounds called");
     emit("debug", `toolbarRef.current: ${toolbarRef.current ? 'exists' : 'null'}`);
     emit("debug", `showSettings: ${showSettings}`);
@@ -130,8 +144,11 @@ function Component() {
         height: toolbarRect.height,
       };
 
+      console.log("[Control Bar] Base toolbar bounds:", bounds);
+
       // If settings popup is open, calculate combined bounds
       if (showSettings) {
+        console.log("[Control Bar] Settings is open, calculating combined bounds");
         // Calculate popup position manually based on how it's positioned in the component
         const isNearTop = position.y < 250;
         const popupTop = isNearTop ? position.y + 60 : position.y - 200;
@@ -160,6 +177,8 @@ function Component() {
           const popupRect = settingsPopupRef.current.getBoundingClientRect();
           emit("debug", `Actual popup rect: ${JSON.stringify({x: popupRect.left, y: popupRect.top, width: popupRect.width, height: popupRect.height})}`);
         }
+      } else {
+        console.log("[Control Bar] Settings is closed, using toolbar-only bounds");
       }
       
       emit("debug", `Toolbar position: ${JSON.stringify(position)}`);
@@ -193,33 +212,41 @@ function Component() {
     document.documentElement.setAttribute("data-transparent-window", "true");
 
     const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging) {
-        // Get toolbar dimensions for clamping
-        const toolbarWidth = toolbarRef.current?.getBoundingClientRect().width || 200;
-        const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height || 60;
-        
-        // Clamp position to keep toolbar on screen
-        const clampedX = Math.max(0, Math.min(window.innerWidth - toolbarWidth, e.clientX - dragOffset.x));
-        const clampedY = Math.max(0, Math.min(window.innerHeight - toolbarHeight, e.clientY - dragOffset.y));
-        
-        const newPosition = {
-          x: clampedX,
-          y: clampedY,
-        };
-        setPosition(newPosition);
-        // Throttle bounds updates during drag to prevent IPC saturation
-        if (!updateScheduledRef.current) {
-          updateScheduledRef.current = true;
-          requestAnimationFrame(() => {
-            updateOverlayBounds();
-            updateScheduledRef.current = false;
-          });
-        }
+      if (!isDraggingRef.current) return;
+      
+      // Get toolbar dimensions for clamping
+      const toolbarWidth = toolbarRef.current?.getBoundingClientRect().width || 200;
+      const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height || 60;
+      
+      // Clamp position to keep toolbar on screen
+      const clampedX = Math.max(0, Math.min(window.innerWidth - toolbarWidth, e.clientX - dragOffsetRef.current.x));
+      const clampedY = Math.max(0, Math.min(window.innerHeight - toolbarHeight, e.clientY - dragOffsetRef.current.y));
+      
+      const newPosition = {
+        x: clampedX,
+        y: clampedY,
+      };
+      
+      setPosition(newPosition);
+      
+      // Simple throttling - update bounds every few frames during drag
+      if (!updateScheduledRef.current) {
+        updateScheduledRef.current = true;
+        setTimeout(() => {
+          updateOverlayBounds();
+          updateScheduledRef.current = false;
+        }, 16); // ~60fps
       }
     };
 
     const handleMouseUp = () => {
+      console.log("[Control Bar] Mouse up - ending drag");
       setIsDragging(false);
+      // Immediately update bounds when drag ends to ensure toolbar stays responsive
+      setTimeout(() => {
+        console.log("[Control Bar] Updating bounds after drag end");
+        updateOverlayBounds();
+      }, 10);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
@@ -232,11 +259,14 @@ function Component() {
       window.removeEventListener("mouseup", handleMouseUp);
       windowsCommands.removeFakeWindow("control");
     };
-  }, [isDragging, dragOffset]);
+  }, []); // Remove dependencies to prevent re-creating event listeners
 
   useEffect(() => {
-    // Update bounds whenever position changes
-    updateOverlayBounds();
+    // Update bounds whenever position changes (safety mechanism)
+    const timer = setTimeout(() => {
+      updateOverlayBounds();
+    }, 50);
+    return () => clearTimeout(timer);
   }, [position]);
 
   // Separate effect for settings popup to ensure it's rendered
@@ -244,12 +274,17 @@ function Component() {
     if (showSettings) {
       // Wait for popup to be rendered and ref to be available
       const timer = setTimeout(() => {
+        console.log("[Control Bar] Updating bounds after settings opened");
         updateOverlayBounds();
       }, 50);
       return () => clearTimeout(timer);
     } else {
-      // Immediately update when popup closes
-      updateOverlayBounds();
+      // Add delay when popup closes to ensure DOM has updated
+      const timer = setTimeout(() => {
+        console.log("[Control Bar] Updating bounds after settings closed");
+        updateOverlayBounds();
+      }, 50);
+      return () => clearTimeout(timer);
     }
   }, [showSettings]);
 
@@ -267,6 +302,10 @@ function Component() {
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
+    console.log("[Control Bar] Mouse down on drag handle", { position, clientX: e.clientX, clientY: e.clientY });
+    e.preventDefault();
+    e.stopPropagation();
+    
     setIsDragging(true);
     setDragOffset({
       x: e.clientX - position.x,
@@ -274,16 +313,6 @@ function Component() {
     });
   };
 
-  const captureScreenshot = () => {
-    emit("debug", "Capture screenshot");
-    if (!updateScheduledRef.current) {
-      updateScheduledRef.current = true;
-      requestAnimationFrame(() => {
-        updateOverlayBounds();
-        updateScheduledRef.current = false;
-      });
-    }
-  };
 
   const toggleRecording = async () => {
     try {
@@ -417,84 +446,89 @@ function Component() {
           }}
         >
           <div className="flex gap-2 items-center">
-            <IconButton onClick={captureScreenshot} tooltip="Take Screenshot">
-              <Camera size={16} />
-            </IconButton>
-            
-            <IconButton
-              onClick={toggleRecording}
-              tooltip={isRecording ? (isRecordingActive ? "Stop Recording" : "Resume Recording") : "Start Recording"}
-              className={`transition-all duration-200 ${
-                isRecordingActive 
-                  ? "bg-red-500/70 hover:bg-red-500/90 shadow-lg shadow-red-500/30" 
-                  : isRecordingPaused
-                  ? "bg-yellow-500/70 hover:bg-yellow-500/90 shadow-lg shadow-yellow-500/30"
-                  : "bg-white/20 hover:bg-white/30"
-              }`}
-              disabled={recordingLoading}
-            >
-              {recordingLoading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-              ) : isRecordingActive ? (
-                <Square size={16} />
-              ) : (
-                <Circle size={16} />
-              )}
-            </IconButton>
-            
-            {/* Pause Button - only show when actively recording */}
-            {isRecordingActive && (
+            {/* Section 1: Mic + Speaker */}
+            <div className="flex gap-1 items-center">
               <IconButton
-                onClick={pauseRecording}
-                tooltip="Pause Recording"
-                className="bg-yellow-500/60 hover:bg-yellow-500/80 shadow-lg shadow-yellow-500/30"
+                onClick={toggleMic}
+                tooltip={micMuted ? "Unmute Microphone" : "Mute Microphone"}
+                className={micMuted ? "bg-red-500/60 hover:bg-red-500/80" : "bg-gray-700/60 hover:bg-gray-600/80"}
+              >
+                {micMuted ? <MicOff size={16} /> : <Mic size={16} />}
+              </IconButton>
+              
+              <IconButton
+                onClick={toggleSpeaker}
+                tooltip={speakerMuted ? "Unmute Speaker" : "Mute Speaker"}
+                className={speakerMuted ? "bg-red-500/60 hover:bg-red-500/80" : "bg-gray-700/60 hover:bg-gray-600/80"}
+              >
+                {speakerMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              </IconButton>
+            </div>
+            
+            <div className="w-px h-6 bg-white/20 mx-1" />
+            
+            {/* Section 2: Pause + Stop */}
+            <div className="flex gap-1 items-center">
+              {/* Pause/Resume Button */}
+              {isRecording && (
+                <IconButton
+                  onClick={isRecordingActive ? pauseRecording : toggleRecording}
+                  tooltip={isRecordingActive ? "Pause Recording" : "Resume Recording"}
+                  className={isRecordingActive 
+                    ? "bg-amber-600/60 hover:bg-amber-500/80" 
+                    : "bg-green-600/60 hover:bg-green-500/80"
+                  }
+                  disabled={recordingLoading}
+                >
+                  {recordingLoading ? (
+                    <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                  ) : isRecordingActive ? (
+                    <div className="flex gap-0.5">
+                      <div className="w-1 h-3 bg-white rounded-sm" />
+                      <div className="w-1 h-3 bg-white rounded-sm" />
+                    </div>
+                  ) : (
+                    <Circle size={16} />
+                  )}
+                </IconButton>
+              )}
+              
+              {/* Stop/Start Button */}
+              <IconButton
+                onClick={toggleRecording}
+                tooltip={isRecording ? "Stop Recording" : "Start Recording"}
+                className={isRecording 
+                  ? "bg-red-600/70 hover:bg-red-500/90 shadow-lg shadow-red-500/30" 
+                  : "bg-gray-700/60 hover:bg-gray-600/80"
+                }
                 disabled={recordingLoading}
               >
                 {recordingLoading ? (
                   <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                ) : isRecording ? (
+                  <Square size={16} />
                 ) : (
-                  <div className="flex gap-0.5">
-                    <div className="w-1 h-3 bg-white rounded-sm" />
-                    <div className="w-1 h-3 bg-white rounded-sm" />
-                  </div>
+                  <Circle size={16} />
                 )}
               </IconButton>
-            )}
-
-            {/* Audio Controls - show when recording */}
-            {isRecording && (
-              <>
-                <IconButton
-                  onClick={toggleMic}
-                  tooltip={micMuted ? "Unmute Microphone" : "Mute Microphone"}
-                  className={micMuted ? "bg-red-500/50 hover:bg-red-500/70" : ""}
-                >
-                  {micMuted ? <MicOff size={16} /> : <Mic size={16} />}
-                </IconButton>
-                
-                <IconButton
-                  onClick={toggleSpeaker}
-                  tooltip={speakerMuted ? "Unmute Speaker" : "Mute Speaker"}
-                  className={speakerMuted ? "bg-red-500/50 hover:bg-red-500/70" : ""}
-                >
-                  {speakerMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                </IconButton>
-              </>
-            )}
+            </div>
             
             <div className="w-px h-6 bg-white/20 mx-1" />
             
-            <IconButton onClick={openSettings} tooltip="Settings">
-              <Settings size={16} />
-            </IconButton>
-            
-            <div
-              className="ml-1 p-1.5 text-white/60 cursor-move hover:text-white/90 hover:bg-white/10 rounded-lg transition-all duration-200"
-              onMouseDown={handleMouseDown}
-              title="Drag to move"
-              style={{ userSelect: 'none' }}
-            >
-              <Grip size={16} />
+            {/* Section 3: Settings + Drag Handle */}
+            <div className="flex gap-1 items-center">
+              <IconButton onClick={openSettings} tooltip="Settings" className="bg-gray-700/60 hover:bg-gray-600/80">
+                <Settings size={16} />
+              </IconButton>
+              
+              <div
+                className="ml-1 p-1.5 text-white/60 cursor-move hover:text-white/90 hover:bg-gray-600/40 rounded-lg transition-all duration-200"
+                onMouseDown={handleMouseDown}
+                title="Drag to move"
+                style={{ userSelect: 'none' }}
+              >
+                <Grip size={16} />
+              </div>
             </div>
           </div>
         </div>
@@ -535,7 +569,7 @@ function IconButton({ onClick, children, className = "", tooltip = "", disabled 
     <button
       onClick={handleClick}
       disabled={disabled}
-      className={`p-2 bg-white/15 backdrop-blur-sm rounded-xl text-white shadow-lg hover:bg-white/25 active:bg-white/35 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-white/10 hover:border-white/20 ${className}`}
+      className={`p-2 bg-gray-800/50 backdrop-blur-sm rounded-xl text-white shadow-lg hover:bg-gray-700/60 active:bg-gray-600/70 transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed border border-gray-600/30 hover:border-gray-500/40 ${className}`}
       title={tooltip}
       aria-label={tooltip}
     >

@@ -1,5 +1,4 @@
 use crate::{HyprWindow, KnownPosition, WindowsPluginExt, FakeWindowBounds, OverlayBound};
-use std::collections::HashMap;
 
 #[tauri::command]
 #[specta::specta]

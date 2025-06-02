@@ -360,6 +360,9 @@ impl HyprWindow {
                 .min_inner_size(900.0, 600.0)
                 .build()?,
             Self::Control => {
+                let window_width = (monitor.size().width as f64) / monitor.scale_factor();
+                let window_height = (monitor.size().height as f64) / monitor.scale_factor();
+                
                 let mut builder = WebviewWindow::builder(app, self.label(), WebviewUrl::App("/app/control".into()))
                     .title("")
                     .disable_drag_drop_handler()
@@ -371,10 +374,7 @@ impl HyprWindow {
                     .visible_on_all_workspaces(true)
                     .accept_first_mouse(true)
                     .content_protected(true)
-                    .inner_size(
-                        (monitor.size().width as f64) / monitor.scale_factor(),
-                        (monitor.size().height as f64) / monitor.scale_factor(),
-                    )
+                    .inner_size(window_width, window_height)
                     .skip_taskbar(true)
                     .position(0.0, 0.0)
                     .transparent(true);

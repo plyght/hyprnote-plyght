@@ -11,12 +11,13 @@ export const Route = createFileRoute("/app/control")({
 });
 
 function Component() {
-  emit("debug", "Control component mounted");
-
   const [position, setPosition] = useState(() => {
     const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
     const initialX = (windowWidth - 200) / 2;
-    return { x: initialX, y: window.innerHeight - 80 };
+    const initialY = (windowHeight - 200) / 2; // Center vertically for debugging
+    
+    return { x: initialX, y: initialY };
   });
 
   const [isDragging, setIsDragging] = useState(false);
@@ -128,12 +129,6 @@ function Component() {
   const updateScheduledRef = useRef(false);
 
   const updateOverlayBounds = async () => {
-    console.log("[Control Bar] updateOverlayBounds called", { showSettings, position });
-    emit("debug", "updateOverlayBounds called");
-    emit("debug", `toolbarRef.current: ${toolbarRef.current ? 'exists' : 'null'}`);
-    emit("debug", `showSettings: ${showSettings}`);
-    emit("debug", `settingsPopupRef.current: ${settingsPopupRef.current ? 'exists' : 'null'}`);
-    
     if (toolbarRef.current) {
       const toolbarRect = toolbarRef.current.getBoundingClientRect();
       
@@ -144,11 +139,8 @@ function Component() {
         height: toolbarRect.height,
       };
 
-      console.log("[Control Bar] Base toolbar bounds:", bounds);
-
       // If settings popup is open, calculate combined bounds
       if (showSettings) {
-        console.log("[Control Bar] Settings is open, calculating combined bounds");
         // Calculate popup position manually based on how it's positioned in the component
         const isNearTop = position.y < 250;
         const popupTop = isNearTop ? position.y + 60 : position.y - 200;
@@ -169,37 +161,17 @@ function Component() {
           height: maxY - minY,
         };
         
-        emit("debug", `Popup position: ${JSON.stringify({x: popupLeft, y: popupTop, width: popupWidth, height: popupHeight})}`);
-        emit("debug", `Combined bounds: ${JSON.stringify(bounds)}`);
-        
-        // Double-check with actual rect if ref is available
-        if (settingsPopupRef.current) {
-          const popupRect = settingsPopupRef.current.getBoundingClientRect();
-          emit("debug", `Actual popup rect: ${JSON.stringify({x: popupRect.left, y: popupRect.top, width: popupRect.width, height: popupRect.height})}`);
-        }
-      } else {
-        console.log("[Control Bar] Settings is closed, using toolbar-only bounds");
       }
-      
-      emit("debug", `Toolbar position: ${JSON.stringify(position)}`);
-      emit("debug", `Toolbar rect: ${JSON.stringify({x: toolbarRect.x, y: toolbarRect.y, width: toolbarRect.width, height: toolbarRect.height})}`);
-      emit("debug", `Setting overlay bounds: ${JSON.stringify(bounds)}`);
-      emit("debug", `Window dimensions: ${JSON.stringify({ width: window.innerWidth, height: window.innerHeight })}`);
       
       try {
         await windowsCommands.setFakeWindowBounds("control", bounds);
-        emit("debug", "setFakeWindowBounds completed successfully");
       } catch (error) {
-        emit("debug", `setFakeWindowBounds failed: ${error}`);
+        console.error("Failed to set fake window bounds:", error);
       }
-    } else {
-      emit("debug", "toolbarRef.current is null, skipping bounds update");
     }
   };
 
-  // Add click handler to test if the fake window bounds are working
   const handleToolbarClick = (e: React.MouseEvent) => {
-    emit("debug", `Toolbar clicked at: ${JSON.stringify({ x: e.clientX, y: e.clientY })}`);
     // Don't stop propagation to allow drag events to work properly
   };
 
@@ -240,18 +212,16 @@ function Component() {
     };
 
     const handleMouseUp = () => {
-      console.log("[Control Bar] Mouse up - ending drag");
       setIsDragging(false);
       // Immediately update bounds when drag ends to ensure toolbar stays responsive
       setTimeout(() => {
-        console.log("[Control Bar] Updating bounds after drag end");
         updateOverlayBounds();
       }, 10);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
-
+    
     updateOverlayBounds();
 
     return () => {
@@ -274,14 +244,12 @@ function Component() {
     if (showSettings) {
       // Wait for popup to be rendered and ref to be available
       const timer = setTimeout(() => {
-        console.log("[Control Bar] Updating bounds after settings opened");
         updateOverlayBounds();
       }, 50);
       return () => clearTimeout(timer);
     } else {
       // Add delay when popup closes to ensure DOM has updated
       const timer = setTimeout(() => {
-        console.log("[Control Bar] Updating bounds after settings closed");
         updateOverlayBounds();
       }, 50);
       return () => clearTimeout(timer);
@@ -290,19 +258,13 @@ function Component() {
 
   // Also update bounds after initial render
   useEffect(() => {
-    emit("debug", "Initial useEffect running");
-    emit("debug", `windowsCommands available: ${!!windowsCommands}`);
-    emit("debug", `windowsCommands.setFakeWindowBounds available: ${!!windowsCommands.setFakeWindowBounds}`);
-    
     const timer = setTimeout(() => {
-      emit("debug", "Timer fired, calling updateOverlayBounds");
       updateOverlayBounds();
     }, 100);
     return () => clearTimeout(timer);
   }, []);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    console.log("[Control Bar] Mouse down on drag handle", { position, clientX: e.clientX, clientY: e.clientY });
     e.preventDefault();
     e.stopPropagation();
     
@@ -321,16 +283,13 @@ function Component() {
       if (isRecording) {
         if (isRecordingActive) {
           await listenerCommands.stopSession();
-          console.log("[Control Bar] Stopped recording");
         } else if (isRecordingPaused) {
           await listenerCommands.resumeSession();
-          console.log("[Control Bar] Resumed recording");
         }
       } else {
         // Create a new session and start recording
         const newSessionId = `control-session-${Date.now()}`;
         await listenerCommands.startSession(newSessionId);
-        console.log(`[Control Bar] Started recording with session: ${newSessionId}`);
       }
     } catch (error) {
       console.error("[Control Bar] Recording error:", error);
@@ -351,7 +310,6 @@ function Component() {
       setRecordingLoading(true);
       if (isRecordingActive) {
         await listenerCommands.pauseSession();
-        console.log("[Control Bar] Paused recording");
       }
     } catch (error) {
       console.error("[Control Bar] Pause error:", error);
@@ -374,7 +332,6 @@ function Component() {
       setMicMuted(newMuted);
       // Emit event to synchronize with other windows
       await emit("audio-mic-state-changed", { muted: newMuted });
-      console.log(`[Control Bar] ${newMuted ? "Muted" : "Unmuted"} microphone`);
     } catch (error) {
       console.error("[Control Bar] Mic toggle error:", error);
     }
@@ -387,7 +344,6 @@ function Component() {
       setSpeakerMuted(newMuted);
       // Emit event to synchronize with other windows
       await emit("audio-speaker-state-changed", { muted: newMuted });
-      console.log(`[Control Bar] ${newMuted ? "Muted" : "Unmuted"} speaker`);
     } catch (error) {
       console.error("[Control Bar] Speaker toggle error:", error);
     }
@@ -395,7 +351,6 @@ function Component() {
 
   const openSettings = () => {
     setShowSettings(!showSettings);
-    console.log(`[Control Bar] ${showSettings ? "Closed" : "Opened"} settings`);
   };
 
   const toggleAutoStart = () => {

@@ -11,6 +11,8 @@ type State = {
   status: "inactive" | "running_active" | "running_paused";
   amplitude: { mic: number; speaker: number };
   enhanceController: AbortController | null;
+  micMuted: boolean;
+  speakerMuted: boolean;
 };
 
 type Actions = {
@@ -29,6 +31,8 @@ const initialState: State = {
   loading: false,
   amplitude: { mic: 0, speaker: 0 },
   enhanceController: null,
+  micMuted: false,
+  speakerMuted: false,
 };
 
 export type OngoingSessionStore = ReturnType<typeof createOngoingSessionStore>;
@@ -90,6 +94,18 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
             mutate(state, (draft) => {
               draft.status = "inactive";
               draft.loading = false;
+            })
+          );
+        } else if (payload.type === "micMuted") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.micMuted = payload.value;
+            })
+          );
+        } else if (payload.type === "speakerMuted") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.speakerMuted = payload.value;
             })
           );
         }

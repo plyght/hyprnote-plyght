@@ -456,7 +456,6 @@ pub trait WindowsPluginExt<R: tauri::Runtime> {
     fn window_hide(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_destroy(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_position(&self, window: HyprWindow, pos: KnownPosition) -> Result<(), crate::Error>;
-    fn window_resize_default(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_is_visible(&self, window: HyprWindow) -> Result<bool, crate::Error>;
 
     fn window_get_floating(&self, window: HyprWindow) -> Result<bool, crate::Error>;
@@ -547,15 +546,6 @@ impl WindowsPluginExt<tauri::Wry> for AppHandle<tauri::Wry> {
 
     fn window_position(&self, window: HyprWindow, pos: KnownPosition) -> Result<(), crate::Error> {
         window.position(self, pos)
-    }
-
-    fn window_resize_default(&self, window: HyprWindow) -> Result<(), crate::Error> {
-        if let Some(w) = window.get(self) {
-            let default_size = window.get_default_size();
-            w.set_size(default_size)?;
-        }
-
-        Ok(())
     }
 
     fn window_is_visible(&self, window: HyprWindow) -> Result<bool, crate::Error> {

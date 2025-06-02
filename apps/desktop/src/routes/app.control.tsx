@@ -290,7 +290,6 @@ function Component() {
     
     // Initial bounds setup - use longer delay to ensure DOM is ready and position is loaded
     setTimeout(() => {
-      console.log(`[Control Bar] Setting up initial bounds at position:`, position);
       updateOverlayBounds();
     }, 200);
 
@@ -328,14 +327,10 @@ function Component() {
         const rect = controlRef.current.getBoundingClientRect();
         const actualPosition = { x: rect.left, y: rect.top };
         
-        console.log(`[Control Bar] Detected actual rendered position:`, actualPosition);
-        console.log(`[Control Bar] React state position:`, position);
-        
         // If there's a significant difference, sync React state to actual position
         const threshold = 10; // pixels
         if (Math.abs(actualPosition.x - position.x) > threshold || 
             Math.abs(actualPosition.y - position.y) > threshold) {
-          console.log(`[Control Bar] Position mismatch detected, syncing React state to actual position`);
           setPosition(actualPosition);
         } else {
           // Positions match, just update bounds
@@ -469,12 +464,10 @@ function Component() {
             setTimeout(() => {
               const rect = el.getBoundingClientRect();
               const actualPosition = { x: rect.left, y: rect.top };
-              console.log(`[Control Bar] Immediate position detection:`, actualPosition, `vs state:`, position);
               
               const threshold = 10;
               if (Math.abs(actualPosition.x - position.x) > threshold || 
                   Math.abs(actualPosition.y - position.y) > threshold) {
-                console.log(`[Control Bar] Immediate position sync needed`);
                 setPosition(actualPosition);
               }
             }, 50);

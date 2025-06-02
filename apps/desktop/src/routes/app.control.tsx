@@ -15,7 +15,7 @@ function Component() {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
     const initialX = (windowWidth - 200) / 2;
-    const initialY = (windowHeight - 200) / 2; // Center vertically for debugging
+    const initialY = (windowHeight - 200) / 2;
     
     return { x: initialX, y: initialY };
   });

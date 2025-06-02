@@ -9,6 +9,7 @@ import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { lazy, Suspense, useEffect } from "react";
 
 import { CatchNotFoundFallback, ErrorComponent, NotFoundComponent } from "@/components/control";
+import { HyprProvider } from "@/contexts";
 import type { Context } from "@/types";
 import { events as windowsEvents, init as windowsInit } from "@hypr/plugin-windows";
 
@@ -64,7 +65,7 @@ function Component() {
 
   useEffect(() => {
     windowsInit();
-    scan({ enabled: false });
+    scan({ enabled: true });
   }, []);
 
   // Listen for debug events from control window
@@ -81,7 +82,7 @@ function Component() {
   }, []);
 
   return (
-    <>
+    <HyprProvider>
       <ClipboardHandler />
       <CatchNotFound fallback={(e) => <CatchNotFoundFallback error={e} />}>
         <Outlet />
@@ -96,7 +97,7 @@ function Component() {
           />
         </Suspense>
       )}
-    </>
+    </HyprProvider>
   );
 }
 

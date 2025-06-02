@@ -13,12 +13,24 @@ pub use overlay::{FakeWindowBounds, OverlayBound};
 const PLUGIN_NAME: &str = "windows";
 
 use tauri::Manager;
+use uuid::Uuid;
 
 pub type ManagedState = std::sync::Mutex<State>;
 
-#[derive(Default)]
 pub struct WindowState {
+    id: String,
     floating: bool,
+    visible: bool,
+}
+
+impl Default for WindowState {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            floating: false,
+            visible: false,
+        }
+    }
 }
 
 #[derive(Default)]

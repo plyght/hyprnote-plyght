@@ -11,15 +11,12 @@ type State = {
   status: "inactive" | "running_active" | "running_paused";
   amplitude: { mic: number; speaker: number };
   enhanceController: AbortController | null;
-  hasShownConsent: boolean;
 };
 
 type Actions = {
   get: () => State & Actions;
-  cleanup: () => void;
   cancelEnhance: () => void;
   setEnhanceController: (controller: AbortController | null) => void;
-  setHasShownConsent: (hasShown: boolean) => void;
   start: (sessionId: string) => void;
   stop: () => void;
   pause: () => void;
@@ -32,138 +29,121 @@ const initialState: State = {
   loading: false,
   amplitude: { mic: 0, speaker: 0 },
   enhanceController: null,
-  hasShownConsent: false,
 };
 
 export type OngoingSessionStore = ReturnType<typeof createOngoingSessionStore>;
 
 export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof createSessionsStore>) => {
-  return createStore<State & Actions>((set, get) => {
-    // Set up global session event listener
-    listenerEvents.sessionEvent.listen(({ payload }) => {
-      if (payload.type === "audioAmplitude") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.amplitude = {
-              mic: payload.mic,
-              speaker: payload.speaker,
-            };
-          })
-        );
-      } else if (payload.type === "running_active") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "running_active";
-            draft.loading = false;
-          })
-        );
-      } else if (payload.type === "running_paused") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "running_paused";
-            draft.loading = false;
-          })
-        );
-      } else if (payload.type === "inactive") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "inactive";
-            draft.loading = false;
-          })
-        );
+  return createStore<State & Actions>((set, get) => ({
+    ...initialState,
+    get: () => get(),
+    cancelEnhance: () => {
+      const { enhanceController } = get();
+      if (enhanceController) {
+        enhanceController.abort();
       }
-    }).then((unlisten) => {
+    },
+    setEnhanceController: (controller: AbortController | null) => {
       set((state) =>
         mutate(state, (draft) => {
-          draft.sessionEventUnlisten = unlisten;
+          draft.enhanceController = controller;
         })
       );
-    });
+    },
+    start: (sessionId: string) => {
+      set((state) =>
+        mutate(state, (draft) => {
+          draft.sessionId = sessionId;
+          draft.loading = true;
+        })
+      );
 
-    return {
-      ...initialState,
-      get: () => get(),
-      cleanup: () => {
-        const { sessionEventUnlisten } = get();
-        if (sessionEventUnlisten) {
-          sessionEventUnlisten();
+      const sessionStore = sessionsStore.getState().sessions[sessionId];
+      sessionStore.getState().persistSession(undefined, true);
+
+      listenerEvents.sessionEvent.listen(({ payload }) => {
+        if (payload.type === "audioAmplitude") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.amplitude = {
+                mic: payload.mic,
+                speaker: payload.speaker,
+              };
+            })
+          );
+        } else if (payload.type === "running_active") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "running_active";
+              draft.loading = false;
+            })
+          );
+        } else if (payload.type === "running_paused") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "running_paused";
+              draft.loading = false;
+            })
+          );
+        } else if (payload.type === "inactive") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "inactive";
+              draft.loading = false;
+            })
+          );
         }
-      },
-      cancelEnhance: () => {
-        const { enhanceController } = get();
-        if (enhanceController) {
-          enhanceController.abort();
-        }
-      },
-      setEnhanceController: (controller: AbortController | null) => {
+      }).then((unlisten) => {
         set((state) =>
           mutate(state, (draft) => {
-            draft.enhanceController = controller;
+            draft.sessionEventUnlisten = unlisten;
           })
         );
-      },
-      setHasShownConsent: (hasShown: boolean) => {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.hasShownConsent = hasShown;
-          })
-        );
-      },
-      start: (sessionId: string) => {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.sessionId = sessionId;
-            draft.loading = true;
-          })
-        );
+      });
 
-        const sessionStore = sessionsStore.getState().sessions[sessionId];
-        sessionStore.getState().persistSession(undefined, true);
+      listenerCommands.startSession(sessionId).then(() => {
+        set({ status: "running_active", loading: false });
+      }).catch((error) => {
+        console.error(error);
+        set(initialState);
+      });
+    },
+    stop: () => {
+      const { sessionId } = get();
 
-        listenerCommands.startSession(sessionId).then(() => {
-          set({ status: "running_active", loading: false });
-        }).catch((error) => {
-          console.error(error);
-          set(initialState);
-        });
-      },
-      stop: () => {
-        const { sessionId } = get();
+      listenerCommands.stopSession().then(() => {
+        set(initialState);
 
-        listenerCommands.stopSession().then(() => {
-          set(initialState);
+        // We need refresh since session in store is now stale.
+        // setTimeout is needed because of debounce.
+        setTimeout(() => {
+          if (sessionId) {
+            const sessionStore = sessionsStore.getState().sessions[sessionId];
+            sessionStore.getState().refresh();
+          }
+        }, 1500);
+      });
+    },
+    pause: () => {
+      const { sessionId } = get();
 
-          // We need refresh since session in store is now stale.
-          // setTimeout is needed because of debounce.
-          setTimeout(() => {
-            if (sessionId) {
-              const sessionStore = sessionsStore.getState().sessions[sessionId];
-              sessionStore.getState().refresh();
-            }
-          }, 1500);
-        });
-      },
-      pause: () => {
-        const { sessionId } = get();
+      listenerCommands.pauseSession().then(() => {
+        set({ status: "running_paused" });
 
-        listenerCommands.pauseSession().then(() => {
-          set({ status: "running_paused" });
-
-          // We need refresh since session in store is now stale.
-          // setTimeout is needed because of debounce.
-          setTimeout(() => {
-            if (sessionId) {
-              const sessionStore = sessionsStore.getState().sessions[sessionId];
-              sessionStore.getState().refresh();
-            }
-          }, 1500);
-        });
-      },
-      resume: () => {
-        listenerCommands.resumeSession().then(() => {
-          set({ status: "running_active" });
-        });
-      },
-    };
-  });
+        // We need refresh since session in store is now stale.
+        // setTimeout is needed because of debounce.
+        setTimeout(() => {
+          if (sessionId) {
+            const sessionStore = sessionsStore.getState().sessions[sessionId];
+            sessionStore.getState().refresh();
+          }
+        }, 1500);
+      });
+    },
+    resume: () => {
+      listenerCommands.resumeSession().then(() => {
+        set({ status: "running_active" });
+      });
+    },
+  }));
 };

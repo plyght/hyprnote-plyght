@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Camera, Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
+import { Camera, Circle, Grip, Mic, MicOff, Settings, Square, Volume2, VolumeX } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
-import { commands as windowsCommands } from "@hypr/plugin-windows";
 import { commands as listenerCommands, events as listenerEvents } from "@hypr/plugin-listener";
+import { commands as windowsCommands } from "@hypr/plugin-windows";
 
 export const Route = createFileRoute("/app/control")({
   component: Component,
@@ -21,31 +21,31 @@ function Component() {
 
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  
+
   // Recording state from listener plugin
   const [recordingStatus, setRecordingStatus] = useState<"inactive" | "running_active" | "running_paused">("inactive");
   const [recordingLoading, setRecordingLoading] = useState(false);
-  
+
   // Audio controls state
   const [micMuted, setMicMuted] = useState(false);
   const [speakerMuted, setSpeakerMuted] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
+
   // Settings toggles state
   const [autoStartRecording, setAutoStartRecording] = useState(() => {
-    return localStorage.getItem('autoStartRecording') === 'true';
+    return localStorage.getItem("autoStartRecording") === "true";
   });
   const [showAudioLevels, setShowAudioLevels] = useState(() => {
-    return localStorage.getItem('showAudioLevels') !== 'false'; // default true
+    return localStorage.getItem("showAudioLevels") !== "false"; // default true
   });
   const [alwaysOnTop, setAlwaysOnTop] = useState(() => {
-    return localStorage.getItem('alwaysOnTop') !== 'false'; // default true
+    return localStorage.getItem("alwaysOnTop") !== "false"; // default true
   });
-  
+
   const isRecording = recordingStatus !== "inactive";
   const isRecordingActive = recordingStatus === "running_active";
   const isRecordingPaused = recordingStatus === "running_paused";
-  
+
   // Load initial recording state and listen for changes
   useEffect(() => {
     const initializeState = async () => {
@@ -53,15 +53,15 @@ function Component() {
         // Get initial state from listener plugin
         const currentState = await listenerCommands.getState();
         console.log(`[Control Bar] Initial state: ${currentState}`);
-        
+
         if (currentState === "running_active" || currentState === "running_paused" || currentState === "inactive") {
           setRecordingStatus(currentState as any);
         }
-        
+
         // Get initial audio state
         const [initialMicMuted, initialSpeakerMuted] = await Promise.all([
           listenerCommands.getMicMuted(),
-          listenerCommands.getSpeakerMuted()
+          listenerCommands.getSpeakerMuted(),
         ]);
         setMicMuted(initialMicMuted);
         setSpeakerMuted(initialSpeakerMuted);
@@ -69,58 +69,60 @@ function Component() {
         console.error("[Control Bar] Failed to load initial state:", error);
       }
     };
-    
+
     initializeState();
-    
+
     // Listen for session events
     const unsubscribeSession = listenerEvents.sessionEvent.listen(({ payload }) => {
       console.log(`[Control Bar] Session event:`, payload);
-      
+
       if (payload.type === "inactive" || payload.type === "running_active" || payload.type === "running_paused") {
         setRecordingStatus(payload.type);
         setRecordingLoading(false);
       }
     });
-    
+
     // Listen for audio state changes from other windows
     const unsubscribeMicState = listen<{ muted: boolean }>("audio-mic-state-changed", ({ payload }) => {
       console.log(`[Control Bar] Received mic state change:`, payload);
       setMicMuted(payload.muted);
     });
-    
+
     const unsubscribeSpeakerState = listen<{ muted: boolean }>("audio-speaker-state-changed", ({ payload }) => {
       console.log(`[Control Bar] Received speaker state change:`, payload);
       setSpeakerMuted(payload.muted);
     });
-    
+
     return () => {
       unsubscribeSession.then(unlisten => unlisten());
       unsubscribeMicState.then(unlisten => unlisten());
       unsubscribeSpeakerState.then(unlisten => unlisten());
     };
   }, []);
-  
+
   // Debug logging
   useEffect(() => {
-    console.log(`[Control Bar Debug] Recording status: ${recordingStatus}, isRecording: ${isRecording}, isRecordingActive: ${isRecordingActive}`);
+    console.log(
+      `[Control Bar Debug] Recording status: ${recordingStatus}, isRecording: ${isRecording}, isRecordingActive: ${isRecordingActive}`,
+    );
   }, [recordingStatus, isRecording, isRecordingActive]);
-  
+
   const controlRef = useRef<HTMLDivElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const settingsPopupRef = useRef<HTMLDivElement>(null);
 
   const updateOverlayBounds = async () => {
     emit("debug", "updateOverlayBounds called");
-    emit("debug", `toolbarRef.current: ${toolbarRef.current ? 'exists' : 'null'}`);
+    emit("debug", `toolbarRef.current: ${toolbarRef.current ? "exists" : "null"}`);
     emit("debug", `showSettings: ${showSettings}`);
-    emit("debug", `settingsPopupRef.current: ${settingsPopupRef.current ? 'exists' : 'null'}`);
-    
+    emit("debug", `settingsPopupRef.current: ${settingsPopupRef.current ? "exists" : "null"}`);
+
     if (toolbarRef.current) {
       const toolbarRect = toolbarRef.current.getBoundingClientRect();
-      
+
       let bounds = {
         x: position.x,
-        y: position.y, 
+        y: position.y,
         width: toolbarRect.width,
         height: toolbarRect.height,
       };
@@ -133,35 +135,48 @@ function Component() {
         const popupLeft = position.x;
         const popupWidth = 256; // w-64 in Tailwind = 256px
         const popupHeight = 200; // Approximate height of the settings popup
-        
+
         // Calculate the combined bounding box
         const minX = Math.min(position.x, popupLeft);
         const minY = Math.min(position.y, popupTop);
         const maxX = Math.max(position.x + toolbarRect.width, popupLeft + popupWidth);
         const maxY = Math.max(position.y + toolbarRect.height, popupTop + popupHeight);
-        
+
         bounds = {
           x: minX,
           y: minY,
           width: maxX - minX,
           height: maxY - minY,
         };
-        
-        emit("debug", `Popup position: ${JSON.stringify({x: popupLeft, y: popupTop, width: popupWidth, height: popupHeight})}`);
+
+        emit(
+          "debug",
+          `Popup position: ${JSON.stringify({ x: popupLeft, y: popupTop, width: popupWidth, height: popupHeight })}`,
+        );
         emit("debug", `Combined bounds: ${JSON.stringify(bounds)}`);
-        
+
         // Double-check with actual rect if ref is available
         if (settingsPopupRef.current) {
           const popupRect = settingsPopupRef.current.getBoundingClientRect();
-          emit("debug", `Actual popup rect: ${JSON.stringify({x: popupRect.left, y: popupRect.top, width: popupRect.width, height: popupRect.height})}`);
+          emit(
+            "debug",
+            `Actual popup rect: ${
+              JSON.stringify({ x: popupRect.left, y: popupRect.top, width: popupRect.width, height: popupRect.height })
+            }`,
+          );
         }
       }
-      
+
       emit("debug", `Toolbar position: ${JSON.stringify(position)}`);
-      emit("debug", `Toolbar rect: ${JSON.stringify({x: toolbarRect.x, y: toolbarRect.y, width: toolbarRect.width, height: toolbarRect.height})}`);
+      emit(
+        "debug",
+        `Toolbar rect: ${
+          JSON.stringify({ x: toolbarRect.x, y: toolbarRect.y, width: toolbarRect.width, height: toolbarRect.height })
+        }`,
+      );
       emit("debug", `Setting overlay bounds: ${JSON.stringify(bounds)}`);
       emit("debug", `Window dimensions: ${JSON.stringify({ width: window.innerWidth, height: window.innerHeight })}`);
-      
+
       try {
         await windowsCommands.setFakeWindowBounds("control", bounds);
         emit("debug", "setFakeWindowBounds completed successfully");
@@ -192,11 +207,11 @@ function Component() {
         // Get toolbar dimensions for clamping
         const toolbarWidth = toolbarRef.current?.getBoundingClientRect().width || 200;
         const toolbarHeight = toolbarRef.current?.getBoundingClientRect().height || 60;
-        
+
         // Clamp position to keep toolbar on screen
         const clampedX = Math.max(0, Math.min(window.innerWidth - toolbarWidth, e.clientX - dragOffset.x));
         const clampedY = Math.max(0, Math.min(window.innerHeight - toolbarHeight, e.clientY - dragOffset.y));
-        
+
         const newPosition = {
           x: clampedX,
           y: clampedY,
@@ -247,7 +262,7 @@ function Component() {
     emit("debug", "Initial useEffect running");
     emit("debug", `windowsCommands available: ${!!windowsCommands}`);
     emit("debug", `windowsCommands.setFakeWindowBounds available: ${!!windowsCommands.setFakeWindowBounds}`);
-    
+
     const timer = setTimeout(() => {
       emit("debug", "Timer fired, calling updateOverlayBounds");
       updateOverlayBounds();
@@ -271,7 +286,7 @@ function Component() {
   const toggleRecording = async () => {
     try {
       setRecordingLoading(true);
-      
+
       if (isRecording) {
         if (isRecordingActive) {
           await listenerCommands.stopSession();
@@ -293,7 +308,7 @@ function Component() {
     }
     setTimeout(updateOverlayBounds, 0);
   };
-  
+
   const pauseRecording = async () => {
     try {
       setRecordingLoading(true);
@@ -308,7 +323,7 @@ function Component() {
     }
     setTimeout(updateOverlayBounds, 0);
   };
-  
+
   const toggleMic = async () => {
     try {
       const newMuted = !micMuted;
@@ -321,7 +336,7 @@ function Component() {
       console.error("[Control Bar] Mic toggle error:", error);
     }
   };
-  
+
   const toggleSpeaker = async () => {
     try {
       const newMuted = !speakerMuted;
@@ -343,29 +358,28 @@ function Component() {
   const toggleAutoStart = () => {
     const newValue = !autoStartRecording;
     setAutoStartRecording(newValue);
-    localStorage.setItem('autoStartRecording', newValue.toString());
+    localStorage.setItem("autoStartRecording", newValue.toString());
   };
 
   const toggleAudioLevels = () => {
     const newValue = !showAudioLevels;
     setShowAudioLevels(newValue);
-    localStorage.setItem('showAudioLevels', newValue.toString());
+    localStorage.setItem("showAudioLevels", newValue.toString());
   };
 
   const toggleAlwaysOnTop = () => {
     const newValue = !alwaysOnTop;
     setAlwaysOnTop(newValue);
-    localStorage.setItem('alwaysOnTop', newValue.toString());
+    localStorage.setItem("alwaysOnTop", newValue.toString());
   };
-  
 
   return (
     <div
       className="w-screen h-[100vh] relative overflow-y-hidden"
-      style={{ 
+      style={{
         scrollbarColor: "auto transparent",
         background: "transparent",
-        backgroundColor: "transparent"
+        backgroundColor: "transparent",
       }}
     >
       <div
@@ -381,38 +395,36 @@ function Component() {
           className="rounded-2xl shadow-2xl flex items-center justify-center transition-all duration-200 p-3"
           ref={toolbarRef}
           onClick={handleToolbarClick}
-          style={{ 
-            pointerEvents: 'auto',
-            background: 'rgba(0, 0, 0, 0.85)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
+          style={{
+            pointerEvents: "auto",
+            background: "rgba(0, 0, 0, 0.85)",
+            boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.6)",
           }}
         >
           <div className="flex gap-2 items-center">
             <IconButton onClick={captureScreenshot} tooltip="Take Screenshot">
               <Camera size={16} />
             </IconButton>
-            
+
             <IconButton
               onClick={toggleRecording}
               tooltip={isRecording ? (isRecordingActive ? "Stop Recording" : "Resume Recording") : "Start Recording"}
               className={`transition-all duration-200 ${
-                isRecordingActive 
-                  ? "bg-red-500/70 hover:bg-red-500/90 shadow-lg shadow-red-500/30" 
+                isRecordingActive
+                  ? "bg-red-500/70 hover:bg-red-500/90 shadow-lg shadow-red-500/30"
                   : isRecordingPaused
                   ? "bg-yellow-500/70 hover:bg-yellow-500/90 shadow-lg shadow-yellow-500/30"
                   : "bg-white/20 hover:bg-white/30"
               }`}
               disabled={recordingLoading}
             >
-              {recordingLoading ? (
-                <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-              ) : isRecordingActive ? (
-                <Square size={16} />
-              ) : (
-                <Circle size={16} />
-              )}
+              {recordingLoading
+                ? <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                : isRecordingActive
+                ? <Square size={16} />
+                : <Circle size={16} />}
             </IconButton>
-            
+
             {/* Pause Button - only show when actively recording */}
             {isRecordingActive && (
               <IconButton
@@ -421,14 +433,14 @@ function Component() {
                 className="bg-yellow-500/60 hover:bg-yellow-500/80 shadow-lg shadow-yellow-500/30"
                 disabled={recordingLoading}
               >
-                {recordingLoading ? (
-                  <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                ) : (
-                  <div className="flex gap-0.5">
-                    <div className="w-1 h-3 bg-white rounded-sm" />
-                    <div className="w-1 h-3 bg-white rounded-sm" />
-                  </div>
-                )}
+                {recordingLoading
+                  ? <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                  : (
+                    <div className="flex gap-0.5">
+                      <div className="w-1 h-3 bg-white rounded-sm" />
+                      <div className="w-1 h-3 bg-white rounded-sm" />
+                    </div>
+                  )}
               </IconButton>
             )}
 
@@ -442,7 +454,7 @@ function Component() {
                 >
                   {micMuted ? <MicOff size={16} /> : <Mic size={16} />}
                 </IconButton>
-                
+
                 <IconButton
                   onClick={toggleSpeaker}
                   tooltip={speakerMuted ? "Unmute Speaker" : "Mute Speaker"}
@@ -452,29 +464,29 @@ function Component() {
                 </IconButton>
               </>
             )}
-            
+
             <div className="w-px h-6 bg-white/20 mx-1" />
-            
+
             <IconButton onClick={openSettings} tooltip="Settings">
               <Settings size={16} />
             </IconButton>
-            
+
             <div
               className="ml-1 p-1.5 text-white/60 cursor-move hover:text-white/90 hover:bg-white/10 rounded-lg transition-all duration-200"
               onMouseDown={handleMouseDown}
               title="Drag to move"
-              style={{ userSelect: 'none' }}
+              style={{ userSelect: "none" }}
             >
               <Grip size={16} />
             </div>
           </div>
         </div>
       </div>
-      
+
       {/* Settings Popup */}
-      <SettingsPopup 
+      <SettingsPopup
         ref={settingsPopupRef}
-        isOpen={showSettings} 
+        isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         position={position}
         autoStartRecording={autoStartRecording}
@@ -525,18 +537,20 @@ const SettingsPopup = React.forwardRef<HTMLDivElement, {
   toggleAutoStart: () => void;
   toggleAudioLevels: () => void;
   toggleAlwaysOnTop: () => void;
-}>(({ 
-  isOpen, 
-  onClose, 
-  position, 
+}>(({
+  isOpen,
+  onClose,
+  position,
   autoStartRecording,
   showAudioLevels,
   alwaysOnTop,
   toggleAutoStart,
   toggleAudioLevels,
-  toggleAlwaysOnTop
+  toggleAlwaysOnTop,
 }, ref) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   // Smart positioning - open downwards if close to top, upwards otherwise
   const isNearTop = position.y < 250; // Within 250px of top
@@ -551,11 +565,12 @@ const SettingsPopup = React.forwardRef<HTMLDivElement, {
         top: popupTop,
       }}
     >
-      <div className="rounded-2xl shadow-2xl p-4 w-64"
+      <div
+        className="rounded-2xl shadow-2xl p-4 w-64"
         style={{
-          pointerEvents: 'auto',
-          background: 'rgba(0, 0, 0, 0.85)',
-          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.6)'
+          pointerEvents: "auto",
+          background: "rgba(0, 0, 0, 0.85)",
+          boxShadow: "0 8px 32px 0 rgba(0, 0, 0, 0.6)",
         }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -570,54 +585,60 @@ const SettingsPopup = React.forwardRef<HTMLDivElement, {
             ×
           </button>
         </div>
-        
+
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Auto-start recording</span>
             <button
               onClick={toggleAutoStart}
               className={`w-10 h-6 rounded-full relative transition-colors ${
-                autoStartRecording ? 'bg-blue-500/60' : 'bg-white/20'
+                autoStartRecording ? "bg-blue-500/60" : "bg-white/20"
               }`}
             >
-              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
-                autoStartRecording ? 'translate-x-4' : 'translate-x-0'
-              }`} />
+              <div
+                className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                  autoStartRecording ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
             </button>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Show audio levels</span>
             <button
               onClick={toggleAudioLevels}
               className={`w-10 h-6 rounded-full relative transition-colors ${
-                showAudioLevels ? 'bg-blue-500/60' : 'bg-white/20'
+                showAudioLevels ? "bg-blue-500/60" : "bg-white/20"
               }`}
             >
-              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
-                showAudioLevels ? 'translate-x-4' : 'translate-x-0'
-              }`} />
+              <div
+                className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                  showAudioLevels ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
             </button>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <span className="text-white/80 text-sm">Always on top</span>
             <button
               onClick={toggleAlwaysOnTop}
               className={`w-10 h-6 rounded-full relative transition-colors ${
-                alwaysOnTop ? 'bg-blue-500/60' : 'bg-white/20'
+                alwaysOnTop ? "bg-blue-500/60" : "bg-white/20"
               }`}
             >
-              <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
-                alwaysOnTop ? 'translate-x-4' : 'translate-x-0'
-              }`} />
+              <div
+                className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-transform ${
+                  alwaysOnTop ? "translate-x-4" : "translate-x-0"
+                }`}
+              />
             </button>
           </div>
-          
+
           <div className="pt-2 border-t border-white/10">
-            <button 
+            <button
               onClick={async () => {
-                await windowsCommands.windowShow({type:"settings"});
+                await windowsCommands.windowShow({ type: "settings" });
                 onClose();
               }}
               className="w-full bg-white/15 hover:bg-white/25 text-white text-sm py-2 px-3 rounded-lg transition-colors"

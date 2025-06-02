@@ -1,5 +1,6 @@
 import { Trans } from "@lingui/react/macro";
 import { useMutation, UseMutationResult, useQuery } from "@tanstack/react-query";
+import { emit, listen } from "@tauri-apps/api/event";
 import {
   CheckIcon,
   MicIcon,
@@ -11,7 +12,6 @@ import {
   VolumeOffIcon,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { emit, listen } from "@tauri-apps/api/event";
 
 import SoundIndicator from "@/components/sound-indicator";
 import { useHypr } from "@/contexts";
@@ -449,12 +449,12 @@ function useAudioControls() {
       console.log(`[Main Window] Received mic state change:`, payload);
       refetchMicMuted();
     });
-    
+
     const unsubscribeSpeakerState = listen<{ muted: boolean }>("audio-speaker-state-changed", ({ payload }) => {
       console.log(`[Main Window] Received speaker state change:`, payload);
       refetchSpeakerMuted();
     });
-    
+
     return () => {
       unsubscribeMicState.then(unlisten => unlisten());
       unsubscribeSpeakerState.then(unlisten => unlisten());

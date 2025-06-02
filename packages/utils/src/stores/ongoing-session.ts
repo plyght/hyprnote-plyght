@@ -90,80 +90,80 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
         }
       },
       cancelEnhance: () => {
-      const { enhanceController } = get();
-      if (enhanceController) {
-        enhanceController.abort();
-      }
-    },
-    setEnhanceController: (controller: AbortController | null) => {
-      set((state) =>
-        mutate(state, (draft) => {
-          draft.enhanceController = controller;
-        })
-      );
-    },
-    setHasShownConsent: (hasShown: boolean) => {
-      set((state) =>
-        mutate(state, (draft) => {
-          draft.hasShownConsent = hasShown;
-        })
-      );
-    },
-    start: (sessionId: string) => {
-      set((state) =>
-        mutate(state, (draft) => {
-          draft.sessionId = sessionId;
-          draft.loading = true;
-        })
-      );
+        const { enhanceController } = get();
+        if (enhanceController) {
+          enhanceController.abort();
+        }
+      },
+      setEnhanceController: (controller: AbortController | null) => {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.enhanceController = controller;
+          })
+        );
+      },
+      setHasShownConsent: (hasShown: boolean) => {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.hasShownConsent = hasShown;
+          })
+        );
+      },
+      start: (sessionId: string) => {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.sessionId = sessionId;
+            draft.loading = true;
+          })
+        );
 
-      const sessionStore = sessionsStore.getState().sessions[sessionId];
-      sessionStore.getState().persistSession(undefined, true);
+        const sessionStore = sessionsStore.getState().sessions[sessionId];
+        sessionStore.getState().persistSession(undefined, true);
 
-      listenerCommands.startSession(sessionId).then(() => {
-        set({ status: "running_active", loading: false });
-      }).catch((error) => {
-        console.error(error);
-        set(initialState);
-      });
-    },
-    stop: () => {
-      const { sessionId } = get();
+        listenerCommands.startSession(sessionId).then(() => {
+          set({ status: "running_active", loading: false });
+        }).catch((error) => {
+          console.error(error);
+          set(initialState);
+        });
+      },
+      stop: () => {
+        const { sessionId } = get();
 
-      listenerCommands.stopSession().then(() => {
-        set(initialState);
+        listenerCommands.stopSession().then(() => {
+          set(initialState);
 
-        // We need refresh since session in store is now stale.
-        // setTimeout is needed because of debounce.
-        setTimeout(() => {
-          if (sessionId) {
-            const sessionStore = sessionsStore.getState().sessions[sessionId];
-            sessionStore.getState().refresh();
-          }
-        }, 1500);
-      });
-    },
-    pause: () => {
-      const { sessionId } = get();
+          // We need refresh since session in store is now stale.
+          // setTimeout is needed because of debounce.
+          setTimeout(() => {
+            if (sessionId) {
+              const sessionStore = sessionsStore.getState().sessions[sessionId];
+              sessionStore.getState().refresh();
+            }
+          }, 1500);
+        });
+      },
+      pause: () => {
+        const { sessionId } = get();
 
-      listenerCommands.pauseSession().then(() => {
-        set({ status: "running_paused" });
+        listenerCommands.pauseSession().then(() => {
+          set({ status: "running_paused" });
 
-        // We need refresh since session in store is now stale.
-        // setTimeout is needed because of debounce.
-        setTimeout(() => {
-          if (sessionId) {
-            const sessionStore = sessionsStore.getState().sessions[sessionId];
-            sessionStore.getState().refresh();
-          }
-        }, 1500);
-      });
-    },
-    resume: () => {
-      listenerCommands.resumeSession().then(() => {
-        set({ status: "running_active" });
-      });
-    },
+          // We need refresh since session in store is now stale.
+          // setTimeout is needed because of debounce.
+          setTimeout(() => {
+            if (sessionId) {
+              const sessionStore = sessionsStore.getState().sessions[sessionId];
+              sessionStore.getState().refresh();
+            }
+          }, 1500);
+        });
+      },
+      resume: () => {
+        listenerCommands.resumeSession().then(() => {
+          set({ status: "running_active" });
+        });
+      },
     };
   });
 };

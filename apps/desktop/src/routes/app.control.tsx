@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Circle, Grip, Settings, Square, Mic, MicOff, Volume2, VolumeX } from "lucide-react";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { emit, listen } from "@tauri-apps/api/event";
 
 import { commands as windowsCommands } from "@hypr/plugin-windows";

@@ -229,13 +229,13 @@ impl HyprWindow {
                 {
                     use tauri_nspanel::ManagerExt;
                     if let Ok(panel) = app.get_webview_panel(&HyprWindow::Control.label()) {
-                        let _ = app.run_on_main_thread({
+                        app.run_on_main_thread({
                             let panel = panel.clone();
                             move || {
                                 panel.set_released_when_closed(true);
                                 panel.close();
                             }
-                        });
+                        }).map_err(|e| tracing::warn!("Failed to run panel close on main thread: {}", e)).ok();
                     }
                 }
                 #[cfg(not(target_os = "macos"))]
@@ -304,7 +304,7 @@ impl HyprWindow {
             return Ok(window);
         }
 
-        let monitor = app.primary_monitor()?.unwrap();
+        let monitor = app.primary_monitor()?.ok_or_else(|| crate::Error::MonitorNotFound)?;
 
         let window = match self {
             Self::Main => {
@@ -407,11 +407,15 @@ impl HyprWindow {
                                     let ns_window = ns_window as *mut AnyObject;
                                     let ns_window = &*ns_window;
                                     
-                                    // Get and hide the standard window buttons using raw values
-                                    // NSWindowCloseButton = 0, NSWindowMiniaturizeButton = 1, NSWindowZoomButton = 2
-                                    let close_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 0u64];
-                                    let miniaturize_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 1u64];
-                                    let zoom_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: 2u64];
+                                    // NSWindow button type constants
+                                    const NS_WINDOW_CLOSE_BUTTON: u64 = 0;
+                                    const NS_WINDOW_MINIATURIZE_BUTTON: u64 = 1;
+                                    const NS_WINDOW_ZOOM_BUTTON: u64 = 2;
+                                    
+                                    // Get and hide the standard window buttons
+                                    let close_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: NS_WINDOW_CLOSE_BUTTON];
+                                    let miniaturize_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: NS_WINDOW_MINIATURIZE_BUTTON];
+                                    let zoom_button: *mut AnyObject = msg_send![ns_window, standardWindowButton: NS_WINDOW_ZOOM_BUTTON];
                                     
                                     if !close_button.is_null() {
                                         let _: () = msg_send![close_button, setHidden: true];
@@ -429,10 +433,19 @@ impl HyprWindow {
                                 }
                             }
                         }
-                    }).ok();
+                    }).map_err(|e| tracing::warn!("Failed to run window setup on main thread: {}", e)).ok();
                 }
 
-                crate::spawn_overlay_listener(app.clone(), window.clone());
+                let join_handle = crate::spawn_overlay_listener(app.clone(), window.clone());
+                
+                // Cancel the overlay listener when the window is closed
+                let window_clone = window.clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { .. } = event {
+                        join_handle.abort();
+                    }
+                });
+                
                 window
             }
         };

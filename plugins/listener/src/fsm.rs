@@ -403,12 +403,14 @@ impl Session {
             StateEvent::MicMuted(muted) => {
                 if let Some(tx) = &self.mic_muted_tx {
                     let _ = tx.send(*muted);
+                    let _ = SessionEvent::MicMuted { value: *muted }.emit(&self.app);
                 }
                 Handled
             }
             StateEvent::SpeakerMuted(muted) => {
                 if let Some(tx) = &self.speaker_muted_tx {
                     let _ = tx.send(*muted);
+                    let _ = SessionEvent::SpeakerMuted { value: *muted }.emit(&self.app);
                 }
                 Handled
             }
@@ -471,14 +473,6 @@ impl Session {
     }
 
     #[action]
-    async fn enter_running_active(&mut self) {
-        {
-            use tauri_plugin_windows::{HyprWindow, WindowsPluginExt};
-            let _ = self.app.window_show(HyprWindow::Control);
-        }
-    }
-
-    #[action]
     async fn enter_inactive(&mut self) {
         {
             use tauri_plugin_tray::TrayPluginExt;
@@ -490,6 +484,15 @@ impl Session {
             let _ = self.app.window_hide(HyprWindow::Control);
         }
 
+        if let Some(session_id) = &self.session_id {
+            use tauri_plugin_db::DatabasePluginExt;
+
+            if let Ok(Some(mut session)) = self.app.db_get_session(session_id).await {
+                session.record_end = Some(chrono::Utc::now());
+                let _ = self.app.db_upsert_session(session).await;
+            }
+        }
+
         self.teardown_resources().await;
     }
 
@@ -497,6 +500,23 @@ impl Session {
     async fn exit_inactive(&mut self) {
         use tauri_plugin_tray::TrayPluginExt;
         let _ = self.app.set_start_disabled(true);
+    }
+
+    #[action]
+    async fn enter_running_active(&mut self) {
+        {
+            use tauri_plugin_windows::{HyprWindow, WindowsPluginExt};
+            let _ = self.app.window_show(HyprWindow::Control);
+        }
+
+        if let Some(session_id) = &self.session_id {
+            use tauri_plugin_db::DatabasePluginExt;
+
+            if let Ok(Some(mut session)) = self.app.db_get_session(session_id).await {
+                session.record_start = Some(chrono::Utc::now());
+                let _ = self.app.db_upsert_session(session).await;
+            }
+        }
     }
 
     fn on_transition(&mut self, source: &State, target: &State) {

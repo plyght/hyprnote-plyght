@@ -15,6 +15,7 @@ const PLUGIN_NAME: &str = "windows";
 use tauri::Manager;
 use std::sync::Mutex;
 use once_cell::sync::Lazy;
+use uuid::Uuid;
 
 pub type ManagedState = std::sync::Mutex<State>;
 
@@ -37,9 +38,20 @@ pub fn abort_overlay_join_handle() {
     }
 }
 
-#[derive(Default)]
 pub struct WindowState {
+    id: String,
     floating: bool,
+    visible: bool,
+}
+
+impl Default for WindowState {
+    fn default() -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            floating: false,
+            visible: false,
+        }
+    }
 }
 
 #[derive(Default)]
@@ -61,7 +73,6 @@ fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::window_hide,
             commands::window_destroy,
             commands::window_position,
-            commands::window_resize_default,
             commands::window_get_floating,
             commands::window_set_floating,
             commands::window_navigate,
@@ -85,11 +96,6 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 
             {
                 let state = ManagedState::default();
-                app.manage(state);
-            }
-
-            {
-                let state = OverlayState::default();
                 app.manage(state);
             }
 

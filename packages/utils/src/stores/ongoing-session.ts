@@ -11,15 +11,14 @@ type State = {
   status: "inactive" | "running_active" | "running_paused";
   amplitude: { mic: number; speaker: number };
   enhanceController: AbortController | null;
-  hasShownConsent: boolean;
+  micMuted: boolean;
+  speakerMuted: boolean;
 };
 
 type Actions = {
   get: () => State & Actions;
-  cleanup: () => void;
   cancelEnhance: () => void;
   setEnhanceController: (controller: AbortController | null) => void;
-  setHasShownConsent: (hasShown: boolean) => void;
   start: (sessionId: string) => void;
   stop: () => void;
   pause: () => void;
@@ -32,64 +31,17 @@ const initialState: State = {
   loading: false,
   amplitude: { mic: 0, speaker: 0 },
   enhanceController: null,
-  hasShownConsent: false,
+  micMuted: false,
+  speakerMuted: false,
 };
 
 export type OngoingSessionStore = ReturnType<typeof createOngoingSessionStore>;
 
 export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof createSessionsStore>) => {
-  return createStore<State & Actions>((set, get) => {
-    // Set up global session event listener
-    listenerEvents.sessionEvent.listen(({ payload }) => {
-      if (payload.type === "audioAmplitude") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.amplitude = {
-              mic: payload.mic,
-              speaker: payload.speaker,
-            };
-          })
-        );
-      } else if (payload.type === "running_active") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "running_active";
-            draft.loading = false;
-          })
-        );
-      } else if (payload.type === "running_paused") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "running_paused";
-            draft.loading = false;
-          })
-        );
-      } else if (payload.type === "inactive") {
-        set((state) =>
-          mutate(state, (draft) => {
-            draft.status = "inactive";
-            draft.loading = false;
-          })
-        );
-      }
-    }).then((unlisten) => {
-      set((state) =>
-        mutate(state, (draft) => {
-          draft.sessionEventUnlisten = unlisten;
-        })
-      );
-    });
-
-    return {
-      ...initialState,
-      get: () => get(),
-      cleanup: () => {
-        const { sessionEventUnlisten } = get();
-        if (sessionEventUnlisten) {
-          sessionEventUnlisten();
-        }
-      },
-      cancelEnhance: () => {
+  return createStore<State & Actions>((set, get) => ({
+    ...initialState,
+    get: () => get(),
+    cancelEnhance: () => {
       const { enhanceController } = get();
       if (enhanceController) {
         enhanceController.abort();
@@ -99,13 +51,6 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
       set((state) =>
         mutate(state, (draft) => {
           draft.enhanceController = controller;
-        })
-      );
-    },
-    setHasShownConsent: (hasShown: boolean) => {
-      set((state) =>
-        mutate(state, (draft) => {
-          draft.hasShownConsent = hasShown;
         })
       );
     },
@@ -119,6 +64,58 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
 
       const sessionStore = sessionsStore.getState().sessions[sessionId];
       sessionStore.getState().persistSession(undefined, true);
+
+      listenerEvents.sessionEvent.listen(({ payload }) => {
+        if (payload.type === "audioAmplitude") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.amplitude = {
+                mic: payload.mic,
+                speaker: payload.speaker,
+              };
+            })
+          );
+        } else if (payload.type === "running_active") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "running_active";
+              draft.loading = false;
+            })
+          );
+        } else if (payload.type === "running_paused") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "running_paused";
+              draft.loading = false;
+            })
+          );
+        } else if (payload.type === "inactive") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.status = "inactive";
+              draft.loading = false;
+            })
+          );
+        } else if (payload.type === "micMuted") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.micMuted = payload.value;
+            })
+          );
+        } else if (payload.type === "speakerMuted") {
+          set((state) =>
+            mutate(state, (draft) => {
+              draft.speakerMuted = payload.value;
+            })
+          );
+        }
+      }).then((unlisten) => {
+        set((state) =>
+          mutate(state, (draft) => {
+            draft.sessionEventUnlisten = unlisten;
+          })
+        );
+      });
 
       listenerCommands.startSession(sessionId).then(() => {
         set({ status: "running_active", loading: false });
@@ -213,6 +210,5 @@ export const createOngoingSessionStore = (sessionsStore: ReturnType<typeof creat
         );
       });
     },
-    };
-  });
+  }));
 };

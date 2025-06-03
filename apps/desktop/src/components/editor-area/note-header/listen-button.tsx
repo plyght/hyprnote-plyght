@@ -1,22 +1,11 @@
 import { Trans } from "@lingui/react/macro";
-import { useMutation, UseMutationResult, useQuery } from "@tanstack/react-query";
-import {
-  CheckIcon,
-  MicIcon,
-  MicOffIcon,
-  PauseIcon,
-  PlayIcon,
-  StopCircleIcon,
-  Volume2Icon,
-  VolumeOffIcon,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { emit, listen } from "@tauri-apps/api/event";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { MicIcon, MicOffIcon, PauseIcon, PlayIcon, StopCircleIcon, Volume2Icon, VolumeOffIcon } from "lucide-react";
+import { useState, useEffect } from "react";
 
 import SoundIndicator from "@/components/sound-indicator";
 import { useHypr } from "@/contexts";
 import { useEnhancePendingState } from "@/hooks/enhance-pending";
-import { commands as analyticsCommands } from "@hypr/plugin-analytics";
 import { commands as listenerCommands } from "@hypr/plugin-listener";
 import { commands as localSttCommands } from "@hypr/plugin-local-stt";
 import { Button } from "@hypr/ui/components/ui/button";
@@ -25,10 +14,11 @@ import { Spinner } from "@hypr/ui/components/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@hypr/ui/components/ui/tooltip";
 import { cn } from "@hypr/ui/lib/utils";
 import { useOngoingSession, useSession } from "@hypr/utils/contexts";
+import { listen, emit } from "@tauri-apps/api/event";
 import ShinyButton from "./shiny-button";
 
 export default function ListenButton({ sessionId }: { sessionId: string }) {
-  const { userId, onboardingSessionId } = useHypr();
+  const { onboardingSessionId } = useHypr();
   const isOnboarding = sessionId === onboardingSessionId;
 
   const modelDownloaded = useQuery({
@@ -49,8 +39,6 @@ export default function ListenButton({ sessionId }: { sessionId: string }) {
     pause: s.pause,
     stop: s.stop,
     loading: s.loading,
-    hasShownConsent: s.hasShownConsent,
-    setHasShownConsent: s.setHasShownConsent,
   }));
 
   const isEnhancePending = useEnhancePendingState(sessionId);
@@ -63,12 +51,6 @@ export default function ListenButton({ sessionId }: { sessionId: string }) {
   const handleStartSession = () => {
     if (ongoingSessionStatus === "inactive") {
       ongoingSessionStore.start(sessionId);
-
-      analyticsCommands.event({
-        event: "onboarding_video_started",
-        distinct_id: userId,
-        session_id: sessionId,
-      });
     }
   };
 
@@ -211,75 +193,29 @@ function WhenInactiveAndMeetingEndedOnboarding({ disabled, onClick }: { disabled
   );
 }
 
-export function WhenActive() {
-  const [open, setOpen] = useState(true);
-  const { sessionId } = useOngoingSession((s) => ({ sessionId: s.sessionId }));
-  const { onboardingSessionId } = useHypr();
-  const isOnboarding = sessionId === onboardingSessionId;
-
+function WhenActive() {
   const ongoingSessionStore = useOngoingSession((s) => ({
     pause: s.pause,
     stop: s.stop,
-    loading: s.loading,
   }));
-
-  const { showConsent, setHasShownConsent } = useConsentManagement(isOnboarding);
-  const audioControls = useAudioControls();
-
-  useEffect(() => {
-    if (showConsent) {
-      listenerCommands.setSpeakerMuted(true).then(async () => {
-        await emit("audio-speaker-state-changed", { muted: true });
-        audioControls.refetchSpeakerMuted();
-      });
-    }
-  }, [showConsent, audioControls.refetchSpeakerMuted]);
-
-  const handleConsentDecision = useMutation({
-    mutationFn: async (recordEveryone: boolean) => {
-      if (recordEveryone) {
-        await listenerCommands.setSpeakerMuted(false);
-        await emit("audio-speaker-state-changed", { muted: false });
-      } else {
-        await listenerCommands.setSpeakerMuted(true);
-        await listenerCommands.setMicMuted(false);
-        await emit("audio-speaker-state-changed", { muted: true });
-        await emit("audio-mic-state-changed", { muted: false });
-      }
-      setHasShownConsent(true);
-    },
-    onSuccess: () => {
-      audioControls.refetchSpeakerMuted();
-      audioControls.refetchMicMuted();
-    },
-  });
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
 
   const handlePauseSession = () => {
     ongoingSessionStore.pause();
-    setOpen(false);
+    setIsPopoverOpen(false);
   };
 
   const handleStopSession = () => {
     ongoingSessionStore.stop();
-    setOpen(false);
-  };
-
-  const handleOpenChange = (isOpen: boolean) => {
-    if (!isOpen && !showConsent) {
-      setOpen(false);
-    } else if (showConsent) {
-      setOpen(true);
-    } else {
-      setOpen(isOpen);
-    }
+    setIsPopoverOpen(false);
   };
 
   return (
-    <Popover open={open} onOpenChange={handleOpenChange}>
+    <Popover>
       <PopoverTrigger asChild>
         <button
           className={cn([
-            open && "hover:scale-95",
+            isPopoverOpen && "hover:scale-95",
             "w-14 h-9 rounded-full bg-red-100 border-2 transition-all border-red-400 cursor-pointer outline-none p-0 flex items-center justify-center",
             "shadow-[0_0_0_2px_rgba(255,255,255,0.8)_inset]",
           ])}
@@ -287,77 +223,47 @@ export function WhenActive() {
           <SoundIndicator color="#ef4444" size="long" />
         </button>
       </PopoverTrigger>
-
       <PopoverContent className="w-64" align="end">
-        {showConsent ? <ConsentDialog onDecision={handleConsentDecision} /> : (
-          <RecordingControls
-            audioControls={audioControls}
-            onPause={handlePauseSession}
-            onStop={handleStopSession}
-          />
-        )}
+        <RecordingControls
+          onPause={handlePauseSession}
+          onStop={handleStopSession}
+        />
       </PopoverContent>
     </Popover>
   );
 }
 
-function ConsentDialog({
-  onDecision,
-}: {
-  onDecision: UseMutationResult<void, Error, boolean, unknown>;
-}) {
-  return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <h4 className="font-medium text-sm mb-2">
-          <Trans>Recording Started</Trans>
-        </h4>
-        <p className="text-xs text-gray-500 mb-4">
-          <Trans>Did you get consent from everyone in the meeting?</Trans>
-        </p>
-        <div className="flex flex-col gap-2">
-          <Button
-            variant="default"
-            onClick={() => onDecision.mutate(true)}
-            className="w-full"
-          >
-            <CheckIcon size={16} className="mr-1" />
-            <Trans>Yes, activate speaker</Trans>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => onDecision.mutate(false)}
-            className="w-full"
-          >
-            <MicIcon size={16} className="mr-1" />
-            <Trans>Record me only</Trans>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RecordingControls({
-  audioControls,
   onPause,
   onStop,
 }: {
-  audioControls: ReturnType<typeof useAudioControls>;
   onPause: () => void;
   onStop: () => void;
 }) {
+  const ongoingSessionMuted = useOngoingSession((s) => ({
+    micMuted: s.micMuted,
+    speakerMuted: s.speakerMuted,
+  }));
+
+  const toggleMicMuted = useMutation({
+    mutationFn: () => listenerCommands.setMicMuted(!ongoingSessionMuted.micMuted),
+  });
+
+  const toggleSpeakerMuted = useMutation({
+    mutationFn: () => listenerCommands.setSpeakerMuted(!ongoingSessionMuted.speakerMuted),
+  });
+
   return (
     <>
       <div className="flex w-full justify-between mb-4">
         <AudioControlButton
-          isMuted={audioControls.isMicMuted}
-          onClick={() => audioControls.toggleMicMuted.mutate()}
+          isMuted={ongoingSessionMuted.micMuted}
+          onClick={() => toggleMicMuted.mutate()}
           type="mic"
         />
         <AudioControlButton
-          isMuted={audioControls.isSpeakerMuted}
-          onClick={() => audioControls.toggleSpeakerMuted.mutate()}
+          isMuted={ongoingSessionMuted.speakerMuted}
+          onClick={() => toggleSpeakerMuted.mutate()}
           type="speaker"
         />
       </div>
@@ -443,7 +349,6 @@ function useAudioControls() {
     queryFn: () => listenerCommands.getSpeakerMuted(),
   });
 
-  // Listen for audio state changes from other windows
   useEffect(() => {
     const unsubscribeMicState = listen<{ muted: boolean }>("audio-mic-state-changed", ({ payload }) => {
       console.log(`[Main Window] Received mic state change:`, payload);
@@ -465,7 +370,6 @@ function useAudioControls() {
     mutationFn: async () => {
       const newMuted = !isMicMuted;
       await listenerCommands.setMicMuted(newMuted);
-      // Emit event to synchronize with other windows
       await emit("audio-mic-state-changed", { muted: newMuted });
       return newMuted;
     },
@@ -479,7 +383,6 @@ function useAudioControls() {
     mutationFn: async () => {
       const newMuted = !isSpeakerMuted;
       await listenerCommands.setSpeakerMuted(newMuted);
-      // Emit event to synchronize with other windows
       await emit("audio-speaker-state-changed", { muted: newMuted });
       return newMuted;
     },

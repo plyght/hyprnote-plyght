@@ -10,11 +10,6 @@ pub struct OverlayBound {
     pub height: f64,
 }
 
-#[derive(Default)]
-pub struct OverlayState {
-    pub bounds: Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>,
-}
-
 pub struct FakeWindowBounds(pub Arc<RwLock<HashMap<String, HashMap<String, OverlayBound>>>>);
 
 impl Default for FakeWindowBounds {
@@ -32,7 +27,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) -> tokio::t
         let mut last_focus_state = false;
 
         loop {
-            // Reduced polling frequency from 20Hz to 10Hz
             sleep(Duration::from_millis(1000 / 10)).await;
 
             let map = state.0.read().await;
@@ -75,9 +69,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) -> tokio::t
                 let y_min = (window_position.y as f64) + bounds.y * scale_factor;
                 let y_max = (window_position.y as f64) + (bounds.y + bounds.height) * scale_factor;
 
-                // println!("Checking bounds for {}: mouse({}, {}) vs bounds({}-{}, {}-{})", 
-                //     name, mouse_position.x, mouse_position.y, x_min, x_max, y_min, y_max);
-
                 if mouse_position.x >= x_min
                     && mouse_position.x <= x_max
                     && mouse_position.y >= y_min
@@ -88,7 +79,6 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) -> tokio::t
                 }
             }
 
-            // Only update cursor events if state changed
             if ignore != last_ignore_state {
                 if let Err(e) = window.set_ignore_cursor_events(ignore) {
                     tracing::warn!("Failed to set ignore cursor events: {}", e);

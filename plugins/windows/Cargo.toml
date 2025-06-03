@@ -23,6 +23,7 @@ objc2-foundation = { workspace = true }
 serde = { workspace = true }
 specta = { workspace = true }
 strum = { workspace = true, features = ["derive"] }
+uuid = { workspace = true, features = ["v4"] }
 
 tauri = { workspace = true, features = ["test", "macos-private-api"] }
 tauri-specta = { workspace = true, features = ["derive", "typescript"] }

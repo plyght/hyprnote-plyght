@@ -5,6 +5,7 @@ Default permissions for the plugin
 #### This default permission set includes the following:
 
 - `allow-window-show`
+- `allow-window-close`
 - `allow-window-hide`
 - `allow-window-destroy`
 - `allow-window-position`

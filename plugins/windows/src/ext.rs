@@ -3,8 +3,9 @@ use tauri::{
     WebviewWindowBuilder,
 };
 use tauri_specta::Event;
+use uuid::Uuid;
 
-use crate::{events, WindowState};
+use crate::events;
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type, PartialEq, Eq, Hash)]
 #[serde(tag = "type", content = "value")]
@@ -153,34 +154,6 @@ impl HyprWindow {
     pub fn get(&self, app: &AppHandle<tauri::Wry>) -> Option<WebviewWindow> {
         let label = self.label();
         app.get_webview_window(&label)
-    }
-
-    pub fn get_default_size(&self) -> LogicalSize<f64> {
-        match self {
-            Self::Main => LogicalSize::new(910.0, 600.0),
-            Self::Note(_) => LogicalSize::new(480.0, 500.0),
-            Self::Human(_) => LogicalSize::new(480.0, 500.0),
-            Self::Organization(_) => LogicalSize::new(480.0, 500.0),
-            Self::Calendar => LogicalSize::new(640.0, 532.0),
-            Self::Settings => LogicalSize::new(800.0, 600.0),
-            Self::Video(_) => LogicalSize::new(640.0, 360.0),
-            Self::Plans => LogicalSize::new(900.0, 600.0),
-            Self::Control => LogicalSize::new(100.0, 100.0),
-        }
-    }
-
-    pub fn get_min_size(&self) -> LogicalSize<f64> {
-        match self {
-            Self::Main => LogicalSize::new(620.0, 500.0),
-            Self::Note(_) => LogicalSize::new(480.0, 360.0),
-            Self::Human(_) => LogicalSize::new(480.0, 360.0),
-            Self::Organization(_) => LogicalSize::new(480.0, 360.0),
-            Self::Calendar => LogicalSize::new(640.0, 532.0),
-            Self::Settings => LogicalSize::new(800.0, 600.0),
-            Self::Video(_) => LogicalSize::new(640.0, 360.0),
-            Self::Plans => LogicalSize::new(900.0, 600.0),
-            Self::Control => LogicalSize::new(100.0, 100.0),
-        }
     }
 
     pub fn position(
@@ -397,6 +370,7 @@ impl HyprWindow {
 
                 #[cfg(target_os = "macos")]
                 {
+                    #[allow(deprecated, unexpected_cfgs)]
                     app.run_on_main_thread({
                         let window = window.clone();
                         move || {
@@ -454,6 +428,13 @@ impl HyprWindow {
 
         window.set_focus()?;
         window.show()?;
+
+        if self == &Self::Main {
+            if let Err(e) = app.handle_main_window_visibility(true) {
+                tracing::error!("failed_to_handle_main_window_visibility: {:?}", e);
+            }
+        }
+
         Ok(window)
     }
 
@@ -486,12 +467,13 @@ impl HyprWindow {
 }
 
 pub trait WindowsPluginExt<R: tauri::Runtime> {
+    fn handle_main_window_visibility(&self, visible: bool) -> Result<(), crate::Error>;
+
     fn window_show(&self, window: HyprWindow) -> Result<WebviewWindow, crate::Error>;
     fn window_close(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_hide(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_destroy(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_position(&self, window: HyprWindow, pos: KnownPosition) -> Result<(), crate::Error>;
-    fn window_resize_default(&self, window: HyprWindow) -> Result<(), crate::Error>;
     fn window_is_visible(&self, window: HyprWindow) -> Result<bool, crate::Error>;
 
     fn window_get_floating(&self, window: HyprWindow) -> Result<bool, crate::Error>;
@@ -511,6 +493,59 @@ pub trait WindowsPluginExt<R: tauri::Runtime> {
 }
 
 impl WindowsPluginExt<tauri::Wry> for AppHandle<tauri::Wry> {
+    fn handle_main_window_visibility(&self, visible: bool) -> Result<(), crate::Error> {
+        let state = self.state::<crate::ManagedState>();
+        let mut guard = state.lock().unwrap();
+
+        let window_state = guard.windows.entry(HyprWindow::Main).or_default();
+
+        if window_state.visible != visible {
+            let previous_visible = window_state.visible;
+            window_state.visible = visible;
+
+            let event_name = if visible {
+                "show_main_window"
+            } else {
+                "hide_main_window"
+            };
+
+            let session_id = if !previous_visible && visible {
+                let new_session_id = Uuid::new_v4().to_string();
+                window_state.id = new_session_id.clone();
+                new_session_id
+            } else {
+                window_state.id.clone()
+            };
+
+            let user_id = {
+                use tauri_plugin_auth::{AuthPluginExt, StoreKey};
+
+                self.get_from_store(StoreKey::UserId)?
+                    .unwrap_or("UNKNOWN".into())
+            };
+
+            {
+                use tauri_plugin_analytics::{
+                    hypr_analytics::AnalyticsPayload, AnalyticsPluginExt,
+                };
+
+                let e = AnalyticsPayload::for_user(user_id)
+                    .event(event_name)
+                    .with("session_id", session_id)
+                    .build();
+
+                let app_clone = self.clone();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) = app_clone.event(e).await {
+                        tracing::error!("failed_to_send_analytics: {:?}", e);
+                    }
+                });
+            }
+        }
+
+        Ok(())
+    }
+
     fn window_show(&self, window: HyprWindow) -> Result<WebviewWindow, crate::Error> {
         window.show(self)
     }
@@ -529,15 +564,6 @@ impl WindowsPluginExt<tauri::Wry> for AppHandle<tauri::Wry> {
 
     fn window_position(&self, window: HyprWindow, pos: KnownPosition) -> Result<(), crate::Error> {
         window.position(self, pos)
-    }
-
-    fn window_resize_default(&self, window: HyprWindow) -> Result<(), crate::Error> {
-        if let Some(w) = window.get(self) {
-            let default_size = window.get_default_size();
-            w.set_size(default_size)?;
-        }
-
-        Ok(())
     }
 
     fn window_is_visible(&self, window: HyprWindow) -> Result<bool, crate::Error> {
@@ -569,11 +595,7 @@ impl WindowsPluginExt<tauri::Wry> for AppHandle<tauri::Wry> {
 
             {
                 let mut guard = state.lock().unwrap();
-                guard
-                    .windows
-                    .entry(window)
-                    .or_insert(WindowState::default())
-                    .floating = v;
+                guard.windows.entry(window).or_default().floating = v;
             }
         }
 

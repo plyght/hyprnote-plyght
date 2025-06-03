@@ -3,12 +3,13 @@ import { scan } from "react-scan";
 
 import { useQuery } from "@tanstack/react-query";
 import { CatchNotFound, createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
+import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
-import { listen } from "@tauri-apps/api/event";
 import { lazy, Suspense, useEffect } from "react";
 
 import { CatchNotFoundFallback, ErrorComponent, NotFoundComponent } from "@/components/control";
+import { HyprProvider } from "@/contexts";
 import type { Context } from "@/types";
 import { events as windowsEvents, init as windowsInit } from "@hypr/plugin-windows";
 
@@ -64,7 +65,7 @@ function Component() {
 
   useEffect(() => {
     windowsInit();
-    scan({ enabled: false });
+    scan({ enabled: true });
   }, []);
 
   // Listen for debug events from control window
@@ -81,7 +82,7 @@ function Component() {
   }, []);
 
   return (
-    <>
+    <HyprProvider>
       <ClipboardHandler />
       <CatchNotFound fallback={(e) => <CatchNotFoundFallback error={e} />}>
         <Outlet />
@@ -96,7 +97,7 @@ function Component() {
           />
         </Suspense>
       )}
-    </>
+    </HyprProvider>
   );
 }
 

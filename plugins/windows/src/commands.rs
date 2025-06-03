@@ -1,4 +1,4 @@
-use crate::{HyprWindow, KnownPosition, WindowsPluginExt, FakeWindowBounds, OverlayBound};
+use crate::{FakeWindowBounds, HyprWindow, KnownPosition, OverlayBound, WindowsPluginExt};
 
 #[tauri::command]
 #[specta::specta]
@@ -48,17 +48,6 @@ pub async fn window_position(
     pos: KnownPosition,
 ) -> Result<(), String> {
     app.window_position(window, pos)
-        .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-#[tauri::command]
-#[specta::specta]
-pub async fn window_resize_default(
-    app: tauri::AppHandle<tauri::Wry>,
-    window: HyprWindow,
-) -> Result<(), String> {
-    app.window_resize_default(window)
         .map_err(|e| e.to_string())?;
     Ok(())
 }

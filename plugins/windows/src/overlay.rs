@@ -69,7 +69,7 @@ pub fn spawn_overlay_listener(app: AppHandle, window: WebviewWindow) -> tokio::t
 
             let mut ignore = true;
 
-            for (name, bounds) in windows.iter() {
+            for (_name, bounds) in windows.iter() {
                 let x_min = (window_position.x as f64) + bounds.x * scale_factor;
                 let x_max = (window_position.x as f64) + (bounds.x + bounds.width) * scale_factor;
                 let y_min = (window_position.y as f64) + bounds.y * scale_factor;

@@ -33,3 +33,4 @@ tauri-plugin-auth = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
 tracing = { workspace = true }
+once_cell = { workspace = true }

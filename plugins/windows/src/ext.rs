@@ -225,6 +225,8 @@ impl HyprWindow {
     fn close(&self, app: &AppHandle<tauri::Wry>) -> Result<(), crate::Error> {
         match self {
             HyprWindow::Control => {
+                crate::abort_overlay_join_handle();
+                
                 #[cfg(target_os = "macos")]
                 {
                     use tauri_nspanel::ManagerExt;
@@ -437,12 +439,12 @@ impl HyprWindow {
                 }
 
                 let join_handle = crate::spawn_overlay_listener(app.clone(), window.clone());
+                crate::set_overlay_join_handle(join_handle);
                 
                 // Cancel the overlay listener when the window is closed
-                let window_clone = window.clone();
                 window.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { .. } = event {
-                        join_handle.abort();
+                        crate::abort_overlay_join_handle();
                     }
                 });
                 

@@ -45,6 +45,12 @@ function Component() {
   const isDraggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   
+  // Interaction tracking (lifted to component scope)
+  const lastInteractionRef = React.useRef(Date.now());
+  const trackInteraction = React.useCallback(() => {
+    lastInteractionRef.current = Date.now();
+  }, []);
+  
   // Update refs whenever state changes
   useEffect(() => {
     isDraggingRef.current = isDragging;
@@ -262,15 +268,9 @@ function Component() {
       updateOverlayBounds();
     };
 
-    // Lightweight recovery: only trigger on actual user interaction
-    let lastInteractionTime = Date.now();
-    const trackInteraction = () => {
-      lastInteractionTime = Date.now();
-    };
-    
     // Only do aggressive reset if it's been a while since last interaction
     const smartRecovery = () => {
-      const timeSinceInteraction = Date.now() - lastInteractionTime;
+      const timeSinceInteraction = Date.now() - lastInteractionRef.current;
       if (timeSinceInteraction > 10000) { // 10 seconds of no interaction
         windowsCommands.removeFakeWindow("control").then(() => {
           setTimeout(updateOverlayBounds, 100);

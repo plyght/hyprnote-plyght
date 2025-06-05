@@ -115,9 +115,18 @@ impl Session {
                 tokio::task::spawn_blocking(move || {
                     let rt = tokio::runtime::Handle::current();
                     rt.block_on(async {
-                        // Create audio streams inside the blocking task
+                        // Create audio streams inside the blocking task with Apple Voice Processing
                         let mic_sample_stream = {
-                            let mut input = hypr_audio::AudioInput::from_mic();
+                            let mut input = match hypr_audio::AudioInput::from_apple_voice_processing() {
+                                Ok(input) => {
+                                    tracing::info!("Apple Voice Processing enabled (AGC, noise suppression, echo cancellation)");
+                                    input
+                                },
+                                Err(e) => {
+                                    tracing::error!("Failed to create Apple Voice Processing input, falling back to basic mic: {:?}", e);
+                                    hypr_audio::AudioInput::from_mic()
+                                }
+                            };
                             match input.stream() {
                                 Ok(stream) => stream,
                                 Err(e) => {

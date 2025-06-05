@@ -1,6 +1,5 @@
-use audio::audiounit_ffi::{VoiceProcessingAudioUnit, AudioUnitScope, AU_INPUT_ELEMENT, AudioUnitRenderCallback};
+use audio::audiounit_ffi::{VoiceProcessingAudioUnit, AudioUnitScope};
 use cidre::{cat, os};
-use std::sync::{Arc, Mutex};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 struct SimpleCtx {
@@ -35,12 +34,12 @@ async fn main() {
     println!();
     
     // Create VoiceProcessingIO AudioUnit
-    let audio_unit = VoiceProcessingAudioUnit::new();
+    let audio_unit = VoiceProcessingAudioUnit::new().unwrap();
     println!("✅ VoiceProcessingIO AudioUnit created");
 
     // Configure I/O - enable input only
-    audio_unit.enable_io(AudioUnitScope::Input, 1, true);
-    audio_unit.enable_io(AudioUnitScope::Output, 0, false);
+    audio_unit.enable_io(AudioUnitScope::Input, 1, true).unwrap();
+    audio_unit.enable_io(AudioUnitScope::Output, 0, false).unwrap();
     println!("✅ I/O configured (input enabled, output disabled)");
 
     // DON'T set any custom format - let VoiceProcessingIO use its defaults
@@ -51,7 +50,7 @@ async fn main() {
     
     // Check and enable AGC
     if audio_unit.check_property_support(2010, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        audio_unit.enable_voice_processing_agc(true);
+        audio_unit.enable_voice_processing_agc(true).unwrap();
         println!("✅ AGC enabled");
     } else {
         println!("⚠️  AGC property not supported");
@@ -59,7 +58,7 @@ async fn main() {
     
     // Check and enable noise suppression
     if audio_unit.check_property_support(2011, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        audio_unit.enable_voice_processing_noise_suppression(true);
+        audio_unit.enable_voice_processing_noise_suppression(true).unwrap();
         println!("✅ Noise suppression enabled");
     } else {
         println!("⚠️  Noise suppression property not supported");
@@ -67,7 +66,7 @@ async fn main() {
     
     // Check and enable echo cancellation
     if audio_unit.check_property_support(2009, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        audio_unit.enable_voice_processing_echo_cancellation(true);
+        audio_unit.enable_voice_processing_echo_cancellation(true).unwrap();
         println!("✅ Echo cancellation enabled");
     } else {
         println!("⚠️  Echo cancellation property not supported");
@@ -79,15 +78,15 @@ async fn main() {
     audio_unit.set_input_callback(
         simple_render_callback,
         &mut ctx as *mut SimpleCtx as *mut std::ffi::c_void,
-    );
+    ).unwrap();
     println!("✅ Input render callback set");
 
     // NOW initialize AFTER setting properties and callbacks
-    audio_unit.initialize();
+    audio_unit.initialize().unwrap();
     println!("✅ AudioUnit initialized successfully!");
 
     // Try to start
-    audio_unit.start();
+    audio_unit.start().unwrap();
     println!("✅ AudioUnit started successfully!");
     println!("🎤 Listening for 5 seconds... (speak into microphone)");
     

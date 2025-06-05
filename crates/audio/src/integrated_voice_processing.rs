@@ -146,15 +146,17 @@ impl IntegratedVoiceProcessing {
             .map_err(|e| anyhow::anyhow!("Failed to enable speaker reference: {:?}", e))?;
 
         // Configure audio format (float32, mono, specified sample rate)
-        let mut asbd = cat::AudioBasicStreamDesc::default();
-        asbd.sample_rate = self.sample_rate as f64;
-        asbd.format = cat::AudioFormat::LINEAR_PCM;
-        asbd.format_flags = cat::AudioFormatFlags::IS_FLOAT | cat::AudioFormatFlags::IS_PACKED;
-        asbd.bytes_per_packet = 4;
-        asbd.frames_per_packet = 1;
-        asbd.bytes_per_frame = 4;
-        asbd.channels_per_frame = 1; // Mono for voice processing
-        asbd.bits_per_channel = 32;
+        let asbd = cat::AudioBasicStreamDesc {
+            sample_rate: self.sample_rate as f64,
+            format: cat::AudioFormat::LINEAR_PCM,
+            format_flags: cat::AudioFormatFlags::IS_FLOAT | cat::AudioFormatFlags::IS_PACKED,
+            bytes_per_packet: 4,
+            frames_per_packet: 1,
+            bytes_per_frame: 4,
+            channels_per_frame: 1,
+            bits_per_channel: 32,
+            ..Default::default()
+        };
 
         // Set format for both input and output
         audio_unit.set_stream_format(&asbd, AudioUnitScope::Input, AU_INPUT_ELEMENT)
@@ -270,7 +272,7 @@ impl IntegratedVoiceProcessing {
         let mut mic_buffer = vec![0.0f32; in_number_frames as usize];
         let audio_buffer = cat::AudioBuf {
             number_channels: 1,
-            data_bytes_size: (in_number_frames * 4) as u32,
+            data_bytes_size: in_number_frames * 4,
             data: mic_buffer.as_mut_ptr() as *mut u8,
         };
 

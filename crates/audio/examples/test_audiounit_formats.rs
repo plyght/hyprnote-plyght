@@ -1,5 +1,4 @@
-use audio::audiounit_ffi::{VoiceProcessingAudioUnit, AudioUnitScope, AU_INPUT_ELEMENT};
-use cidre::cat;
+use audio::audiounit_ffi::{VoiceProcessingAudioUnit, AudioUnitScope};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 
 #[tokio::main]

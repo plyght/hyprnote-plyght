@@ -33,7 +33,7 @@ async fn main() {
     println!("🚀 Starting comprehensive voice processing test...");
     println!();
 
-    let results = tester.compare_implementations().await;
+    let results = tester.compare_implementations().await.unwrap();
     println!();
     println!("🎉 TEST COMPLETED SUCCESSFULLY!");
     println!("==============================");

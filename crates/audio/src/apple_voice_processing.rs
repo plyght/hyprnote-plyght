@@ -246,7 +246,7 @@ impl AppleVoiceProcessingInput {
         let mut buffer = vec![0.0f32; in_number_frames as usize];
         let audio_buffer = cat::AudioBuf {
             number_channels: 1,
-            data_bytes_size: (in_number_frames * 4) as u32,
+            data_bytes_size: in_number_frames * 4,
             data: buffer.as_mut_ptr() as *mut u8,
         };
 

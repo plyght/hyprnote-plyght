@@ -193,8 +193,8 @@ impl VoiceProcessingTester {
             basic_voice_processing: basic_results,
             apple_voice_processing: apple_results,
             integrated_voice_processing: integrated_results,
-            concurrent_mic: concurrent_mic,
-            concurrent_speaker: concurrent_speaker,
+            concurrent_mic,
+            concurrent_speaker,
         };
 
         // Log comparison summary

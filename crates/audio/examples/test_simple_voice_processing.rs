@@ -20,7 +20,7 @@ extern "C" fn simple_render_callback(
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() {
     // Initialize detailed logging
     tracing_subscriber::registry()
         .with(
@@ -35,15 +35,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!();
     
     // Create VoiceProcessingIO AudioUnit
-    let audio_unit = VoiceProcessingAudioUnit::new()
-        .map_err(|e| format!("Failed to create AudioUnit: {:?}", e))?;
+    let audio_unit = VoiceProcessingAudioUnit::new();
     println!("✅ VoiceProcessingIO AudioUnit created");
 
     // Configure I/O - enable input only
-    audio_unit.enable_io(AudioUnitScope::Input, 1, true)
-        .map_err(|e| format!("Failed to enable input: {:?}", e))?;
-    audio_unit.enable_io(AudioUnitScope::Output, 0, false)
-        .map_err(|e| format!("Failed to disable output: {:?}", e))?;
+    audio_unit.enable_io(AudioUnitScope::Input, 1, true);
+    audio_unit.enable_io(AudioUnitScope::Output, 0, false);
     println!("✅ I/O configured (input enabled, output disabled)");
 
     // DON'T set any custom format - let VoiceProcessingIO use its defaults
@@ -54,33 +51,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Check and enable AGC
     if audio_unit.check_property_support(2010, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        if let Err(e) = audio_unit.enable_voice_processing_agc(true) {
-            println!("⚠️  AGC configuration failed: {:?}", e);
-        } else {
-            println!("✅ AGC enabled");
-        }
+        audio_unit.enable_voice_processing_agc(true);
+        println!("✅ AGC enabled");
     } else {
         println!("⚠️  AGC property not supported");
     }
     
     // Check and enable noise suppression
     if audio_unit.check_property_support(2011, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        if let Err(e) = audio_unit.enable_voice_processing_noise_suppression(true) {
-            println!("⚠️  Noise suppression configuration failed: {:?}", e);
-        } else {
-            println!("✅ Noise suppression enabled");
-        }
+        audio_unit.enable_voice_processing_noise_suppression(true);
+        println!("✅ Noise suppression enabled");
     } else {
         println!("⚠️  Noise suppression property not supported");
     }
     
     // Check and enable echo cancellation
     if audio_unit.check_property_support(2009, audio::audiounit_ffi::AudioUnitScope::Global, 0) {
-        if let Err(e) = audio_unit.enable_voice_processing_echo_cancellation(true) {
-            println!("⚠️  Echo cancellation configuration failed: {:?}", e);
-        } else {
-            println!("✅ Echo cancellation enabled");
-        }
+        audio_unit.enable_voice_processing_echo_cancellation(true);
+        println!("✅ Echo cancellation enabled");
     } else {
         println!("⚠️  Echo cancellation property not supported");
     }
@@ -88,43 +76,23 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set callback BEFORE initialization
     let mut ctx = SimpleCtx { sample_count: 0 };
     
-    if let Err(e) = audio_unit.set_input_callback(
+    audio_unit.set_input_callback(
         simple_render_callback,
         &mut ctx as *mut SimpleCtx as *mut std::ffi::c_void,
-    ) {
-        println!("⚠️  Failed to set callback: {:?}", e);
-    } else {
-        println!("✅ Input render callback set");
-    }
+    );
+    println!("✅ Input render callback set");
 
     // NOW initialize AFTER setting properties and callbacks
-    match audio_unit.initialize() {
-        Ok(()) => {
-            println!("✅ AudioUnit initialized successfully!");
-        },
-        Err(e) => {
-            println!("❌ Failed to initialize AudioUnit: {:?}", e);
-            return Err(format!("Initialization failed: {:?}", e).into());
-        }
-    }
+    audio_unit.initialize();
+    println!("✅ AudioUnit initialized successfully!");
 
     // Try to start
-    match audio_unit.start() {
-        Ok(()) => {
-            println!("✅ AudioUnit started successfully!");
-            println!("🎤 Listening for 5 seconds... (speak into microphone)");
-            
-            // Wait and see if we get callbacks
-            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-            
-            println!("✅ VoiceProcessingIO test completed successfully!");
-            println!("🎉 Apple voice processing features are working!");
-        },
-        Err(e) => {
-            println!("❌ Failed to start AudioUnit: {:?}", e);
-            return Err(format!("Start failed: {:?}", e).into());
-        }
-    }
-
-    Ok(())
+    audio_unit.start();
+    println!("✅ AudioUnit started successfully!");
+    println!("🎤 Listening for 5 seconds... (speak into microphone)");
+    
+    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+    
+    println!("✅ VoiceProcessingIO test completed successfully!");
+    println!("🎉 Apple voice processing features are working!");
 }

@@ -104,28 +104,3 @@ async fn test_voice_processing_features(audio_unit: &VoiceProcessingAudioUnit, f
     }
 }
 
-fn create_format_16bit_int(sample_rate: f64) -> cat::AudioBasicStreamDesc {
-    let mut asbd = cat::AudioBasicStreamDesc::default();
-    asbd.sample_rate = sample_rate;
-    asbd.format = cat::AudioFormat::LINEAR_PCM;
-    asbd.format_flags = cat::AudioFormatFlags::IS_SIGNED_INTEGER | cat::AudioFormatFlags::IS_PACKED;
-    asbd.bytes_per_packet = 2;
-    asbd.frames_per_packet = 1;
-    asbd.bytes_per_frame = 2;
-    asbd.channels_per_frame = 1;
-    asbd.bits_per_channel = 16;
-    asbd
-}
-
-fn create_format_32bit_float(sample_rate: f64) -> cat::AudioBasicStreamDesc {
-    let mut asbd = cat::AudioBasicStreamDesc::default();
-    asbd.sample_rate = sample_rate;
-    asbd.format = cat::AudioFormat::LINEAR_PCM;
-    asbd.format_flags = cat::AudioFormatFlags::IS_FLOAT | cat::AudioFormatFlags::IS_PACKED;
-    asbd.bytes_per_packet = 4;
-    asbd.frames_per_packet = 1;
-    asbd.bytes_per_frame = 4;
-    asbd.channels_per_frame = 1;
-    asbd.bits_per_channel = 32;
-    asbd
-}

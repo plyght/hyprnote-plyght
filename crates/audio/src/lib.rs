@@ -245,25 +245,37 @@ impl AudioInput {
     pub fn stream(&mut self) -> Result<AudioStream, anyhow::Error> {
         match &mut self.source {
             AudioSource::RealtimeMic => Ok(AudioStream::RealtimeMic {
-                mic: self.mic.as_ref().unwrap().stream(),
+                mic: self.mic.as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("Mic not initialized"))?
+                    .stream(),
             }),
             #[cfg(target_os = "macos")]
             AudioSource::VoiceProcessingMic => Ok(AudioStream::VoiceProcessingMic {
-                stream: self.voice_processing_mic.take().unwrap().stream()?,
+                stream: self.voice_processing_mic.take()
+                    .ok_or_else(|| anyhow::anyhow!("VoiceProcessingMic not initialized"))?
+                    .stream()?,
             }),
             #[cfg(target_os = "macos")]
             AudioSource::AppleVoiceProcessing => Ok(AudioStream::AppleVoiceProcessing {
-                stream: self.apple_voice_processing.take().unwrap().stream()?,
+                stream: self.apple_voice_processing.take()
+                    .ok_or_else(|| anyhow::anyhow!("AppleVoiceProcessing not initialized"))?
+                    .stream()?,
             }),
             #[cfg(target_os = "macos")]
             AudioSource::IntegratedVoiceProcessing => Ok(AudioStream::IntegratedVoiceProcessing {
-                stream: self.integrated_voice_processing.take().unwrap().stream()?,
+                stream: self.integrated_voice_processing.take()
+                    .ok_or_else(|| anyhow::anyhow!("IntegratedVoiceProcessing not initialized"))?
+                    .stream()?,
             }),
             AudioSource::RealtimeSpeaker => Ok(AudioStream::RealtimeSpeaker {
-                speaker: self.speaker.take().unwrap().stream().unwrap(),
+                speaker: self.speaker.take()
+                    .ok_or_else(|| anyhow::anyhow!("Speaker not initialized"))?
+                    .stream()?,
             }),
             AudioSource::Recorded => Ok(AudioStream::Recorded {
-                data: self.data.as_ref().unwrap().clone(),
+                data: self.data.as_ref()
+                    .ok_or_else(|| anyhow::anyhow!("Recording data not provided"))?
+                    .clone(),
                 position: 0,
             }),
         }

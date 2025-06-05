@@ -2,7 +2,7 @@ use audio::VoiceProcessingTester;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() {
     // Initialize logging with detailed output
     tracing_subscriber::registry()
         .with(
@@ -33,57 +33,41 @@ async fn main() -> anyhow::Result<()> {
     println!("🚀 Starting comprehensive voice processing test...");
     println!();
 
-    match tester.compare_implementations().await {
-        Ok(results) => {
-            println!();
-            println!("🎉 TEST COMPLETED SUCCESSFULLY!");
-            println!("==============================");
-            println!();
-            
-            if results.format_mismatch_resolved() {
-                println!("✅ FORMAT MISMATCH RESOLVED!");
-                println!("   Both mic and speaker work together without interference.");
-            } else {
-                println!("❌ Format mismatch still exists.");
-                println!("   One or both streams are not working properly.");
-            }
-            
-            println!();
-            println!("📊 RESULTS SUMMARY:");
-            println!("   Best implementation: {}", results.best_implementation());
-            println!("   Basic voice processing working: {}", results.basic_voice_processing.non_zero_samples > 0);
-            println!("   Apple AudioUnit working: {}", results.apple_voice_processing.non_zero_samples > 0);
-            println!("   Integrated processing working: {}", results.integrated_voice_processing.non_zero_samples > 0);
-            println!("   Concurrent operation working: {}", results.format_mismatch_resolved());
-            println!();
-            
-            // Show which actual voice processing features are working
-            if results.apple_voice_processing.non_zero_samples > 0 {
-                println!("🎯 VOICE PROCESSING FEATURES CONFIRMED:");
-                println!("   ✅ AGC (Automatic Gain Control)");
-                println!("   ✅ Noise Suppression"); 
-                println!("   ✅ Echo Cancellation");
-                println!("   ✅ Hardware acceleration (Apple Silicon)");
-            } else {
-                println!("⚠️  Voice processing features could not be confirmed");
-                println!("   This might be due to:");
-                println!("   - Missing microphone permissions");
-                println!("   - AudioUnit not available on this system");
-                println!("   - Silent test environment");
-            }
-        }
-        Err(e) => {
-            println!("❌ TEST FAILED: {}", e);
-            println!();
-            println!("Common issues:");
-            println!("1. Microphone permissions not granted");
-            println!("2. Running on non-macOS system");
-            println!("3. VoiceProcessingIO AudioUnit not available");
-            println!("4. Silent environment (try speaking during test)");
-            
-            return Err(e);
-        }
+    let results = tester.compare_implementations().await;
+    println!();
+    println!("🎉 TEST COMPLETED SUCCESSFULLY!");
+    println!("==============================");
+    println!();
+    
+    if results.format_mismatch_resolved() {
+        println!("✅ FORMAT MISMATCH RESOLVED!");
+        println!("   Both mic and speaker work together without interference.");
+    } else {
+        println!("❌ Format mismatch still exists.");
+        println!("   One or both streams are not working properly.");
     }
-
-    Ok(())
+    
+    println!();
+    println!("📊 RESULTS SUMMARY:");
+    println!("   Best implementation: {}", results.best_implementation());
+    println!("   Basic voice processing working: {}", results.basic_voice_processing.non_zero_samples > 0);
+    println!("   Apple AudioUnit working: {}", results.apple_voice_processing.non_zero_samples > 0);
+    println!("   Integrated processing working: {}", results.integrated_voice_processing.non_zero_samples > 0);
+    println!("   Concurrent operation working: {}", results.format_mismatch_resolved());
+    println!();
+    
+    // Show which actual voice processing features are working
+    if results.apple_voice_processing.non_zero_samples > 0 {
+        println!("🎯 VOICE PROCESSING FEATURES CONFIRMED:");
+        println!("   ✅ AGC (Automatic Gain Control)");
+        println!("   ✅ Noise Suppression"); 
+        println!("   ✅ Echo Cancellation");
+        println!("   ✅ Hardware acceleration (Apple Silicon)");
+    } else {
+        println!("⚠️  Voice processing features could not be confirmed");
+        println!("   This might be due to:");
+        println!("   - Missing microphone permissions");
+        println!("   - AudioUnit not available on this system");
+        println!("   - Silent test environment");
+    }
 }

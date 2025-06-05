@@ -135,43 +135,6 @@ impl AppleVoiceProcessingInput {
             tracing::warn!("No speaker reference provided - echo cancellation will be less effective");
         }
 
-        // Get the default format from VoiceProcessingIO first, then modify it
-        // This is safer than assuming what format it wants
-        tracing::info!("🔍 Querying VoiceProcessingIO default format...");
-        
-        // Try to get the current format first
-        let current_format_result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            // Create a basic format that VoiceProcessingIO typically accepts
-            let mut asbd = cat::AudioBasicStreamDesc::default();
-            asbd.sample_rate = self.sample_rate as f64;
-            asbd.format = cat::AudioFormat::LINEAR_PCM;
-            asbd.format_flags = cat::AudioFormatFlags::IS_SIGNED_INTEGER | cat::AudioFormatFlags::IS_PACKED;
-            asbd.bytes_per_packet = 2;
-            asbd.frames_per_packet = 1;
-            asbd.bytes_per_frame = 2;
-            asbd.channels_per_frame = 1; // Mono for voice processing
-            asbd.bits_per_channel = 16;
-            asbd
-        }));
-
-        let _asbd = match current_format_result {
-            Ok(format) => {
-                tracing::info!(
-                    sample_rate = format.sample_rate,
-                    format = ?format.format,
-                    format_flags = ?format.format_flags,
-                    channels = format.channels_per_frame,
-                    bits_per_channel = format.bits_per_channel,
-                    "🔧 Using conservative 16-bit signed integer format for VoiceProcessingIO"
-                );
-                format
-            },
-            Err(_) => {
-                tracing::error!("Failed to create format descriptor");
-                return Err(anyhow::anyhow!("Failed to create audio format"));
-            }
-        };
-
         // Skip format configuration - let VoiceProcessingIO use its default format
         tracing::info!("🔧 Skipping format configuration - using VoiceProcessingIO defaults");
 
@@ -338,11 +301,6 @@ impl AppleVoiceProcessingInput {
     }
 }
 
-impl Default for AppleVoiceProcessingInput {
-    fn default() -> Self {
-        Self::new().unwrap()
-    }
-}
 
 impl Stream for AppleVoiceProcessingStream {
     type Item = f32;

@@ -485,5 +485,9 @@ impl Drop for VoiceProcessingAudioUnit {
     }
 }
 
+// SAFETY: VoiceProcessingAudioUnit wraps an AudioUnit pointer that is safe to send between threads.
+// The AudioUnit API is thread-safe for the operations we perform.
 unsafe impl Send for VoiceProcessingAudioUnit {}
+// SAFETY: VoiceProcessingAudioUnit can be safely shared between threads as all AudioUnit operations
+// are protected by the framework's internal synchronization.
 unsafe impl Sync for VoiceProcessingAudioUnit {}

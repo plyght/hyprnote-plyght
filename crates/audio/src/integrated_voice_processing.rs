@@ -303,7 +303,7 @@ impl IntegratedVoiceProcessing {
         // Push the processed microphone audio to our ring buffer
         let pushed = ctx.mic_producer.push_slice(&mic_buffer);
         if pushed < mic_buffer.len() {
-            tracing::warn!("integrated_voice_processing_dropped_{}_samples", mic_buffer.len() - pushed);
+            tracing::warn!("integrated voice processing dropped {} samples", mic_buffer.len() - pushed);
         }
 
         // Wake up the stream if we have new data
@@ -321,11 +321,6 @@ impl IntegratedVoiceProcessing {
     }
 }
 
-impl Default for IntegratedVoiceProcessing {
-    fn default() -> Self {
-        Self::new().unwrap()
-    }
-}
 
 impl Stream for IntegratedVoiceProcessingStream {
     type Item = f32;

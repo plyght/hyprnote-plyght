@@ -255,11 +255,6 @@ impl VoiceProcessingMicInput {
     }
 }
 
-impl Default for VoiceProcessingMicInput {
-    fn default() -> Self {
-        Self::new().unwrap()
-    }
-}
 
 impl Stream for VoiceProcessingMicStream {
     type Item = f32;
@@ -296,37 +291,6 @@ impl kalosm_sound::AsyncSource for VoiceProcessingMicStream {
     }
 }
 
-/// VoiceProcessingMicInput Implementation Details:
-/// 
-/// **Voice Processing Features Implemented:**
-/// - ✅ **AudioUnit Integration**: Uses VoiceProcessingIO AudioUnit
-/// - ✅ **Automatic Gain Control (AGC)**: Configurable, enabled by default
-/// - ✅ **Noise Suppression**: Configurable, enabled by default  
-/// - ✅ **Basic Echo Cancellation**: Without speaker reference
-/// - ✅ **Format Compatibility**: Float32, mono, configurable sample rate
-/// 
-/// **Benefits:**
-/// - Hardware-accelerated processing on Apple Silicon
-/// - Real-time noise suppression and AGC
-/// - Basic echo cancellation for improved audio quality
-/// - Optimized for speech/voice content
-/// - Format compatible with speaker tap system
-/// 
-/// **Comparison with other implementations:**
-/// - **VoiceProcessingMicInput**: Basic voice processing, no speaker reference
-/// - **AppleVoiceProcessingInput**: Full features with optional speaker reference
-/// - **IntegratedVoiceProcessing**: Full features with automatic speaker reference
-/// 
-/// **Usage Examples:**
-/// ```rust
-/// // Basic voice processing (AGC + noise suppression enabled)
-/// let mic = VoiceProcessingMicInput::new()?;
-/// let stream = mic.stream()?;
-/// 
-/// // Custom configuration
-/// let mic = VoiceProcessingMicInput::with_config(48000, true, false)?; // AGC only
-/// let stream = mic.stream()?;
-/// ```
 
 #[cfg(test)]
 mod tests {

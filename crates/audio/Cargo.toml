@@ -38,3 +38,5 @@ hound = { workspace = true }
 hypr-data = { workspace = true }
 rodio = { workspace = true }
 serial_test = { workspace = true }
+futures-util = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }

@@ -106,28 +106,9 @@ impl VoiceProcessingMicInput {
         audio_unit.enable_io(crate::audiounit_ffi::AudioUnitScope::Output, crate::audiounit_ffi::AU_OUTPUT_ELEMENT, false)
             .map_err(|e| anyhow::anyhow!("Failed to disable output: {:?}", e))?;
 
-        // Configure audio format (float32, mono, specified sample rate)
-        let asbd = cat::AudioBasicStreamDesc {
-            sample_rate: self.sample_rate as f64,
-            format: cat::AudioFormat::LINEAR_PCM,
-            format_flags: cat::AudioFormatFlags::IS_FLOAT | cat::AudioFormatFlags::IS_PACKED,
-            bytes_per_packet: 4,
-            frames_per_packet: 1,
-            bytes_per_frame: 4,
-            channels_per_frame: 1,
-            bits_per_channel: 32,
-            ..Default::default()
-        };
-
-        // Set format for input
-        audio_unit.set_stream_format(&asbd, crate::audiounit_ffi::AudioUnitScope::Input, crate::audiounit_ffi::AU_INPUT_ELEMENT)
-            .map_err(|e| anyhow::anyhow!("Failed to set input format: {:?}", e))?;
-
-        tracing::info!(
-            sample_rate = asbd.sample_rate,
-            channels = asbd.channels_per_frame,
-            "Configured VoiceProcessingIO format for basic voice processing"
-        );
+        // Skip format configuration - let VoiceProcessingIO use its default format
+        // VoiceProcessingIO has specific format requirements and it's better to use defaults
+        tracing::info!("Skipping format configuration - using VoiceProcessingIO defaults");
 
         // Enable voice processing features based on configuration
         if self.enable_agc {
@@ -303,36 +284,44 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn test_voice_processing_mic() {
-        let mic = VoiceProcessingMicInput::new().unwrap();
-        let mut stream = mic.stream().unwrap();
+        let mic = VoiceProcessingMicInput::new()
+            .expect("VoiceProcessingMicInput must be created successfully - no fallbacks allowed");
+        let mut stream = mic.stream()
+            .expect("VoiceProcessingMic stream must initialize successfully - no fallbacks allowed");
 
         let mut buffer = Vec::new();
+        let mut samples_received = 0;
         while let Some(sample) = stream.next().await {
             buffer.push(sample);
-            if buffer.len() > 6000 {
+            samples_received += 1;
+            if samples_received > 6000 {
                 break;
             }
         }
 
-        assert!(buffer.iter().any(|x| *x != 0.0));
+        assert!(buffer.iter().any(|x| *x != 0.0), "Audio samples must contain non-zero data");
     }
 
     #[tokio::test]
     #[serial]
     async fn test_voice_processing_mic_48khz() {
-        let mic = VoiceProcessingMicInput::with_sample_rate(48000).unwrap();
-        let mut stream = mic.stream().unwrap();
+        let mic = VoiceProcessingMicInput::with_sample_rate(48000)
+            .expect("VoiceProcessingMicInput with 48kHz must be created successfully - no fallbacks allowed");
+        let mut stream = mic.stream()
+            .expect("VoiceProcessingMic stream must initialize successfully - no fallbacks allowed");
         
         assert_eq!(stream.sample_rate(), 48000);
 
         let mut buffer = Vec::new();
+        let mut samples_received = 0;
         while let Some(sample) = stream.next().await {
             buffer.push(sample);
-            if buffer.len() > 12000 {
+            samples_received += 1;
+            if samples_received > 12000 {
                 break;
             }
         }
 
-        assert!(buffer.iter().any(|x| *x != 0.0));
+        assert!(buffer.iter().any(|x| *x != 0.0), "Audio samples must contain non-zero data");
     }
 }

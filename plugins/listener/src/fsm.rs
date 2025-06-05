@@ -117,23 +117,11 @@ impl Session {
                     rt.block_on(async {
                         // Create audio streams inside the blocking task with Apple Voice Processing
                         let mic_sample_stream = {
-                            let mut input = match hypr_audio::AudioInput::from_apple_voice_processing() {
-                                Ok(input) => {
-                                    tracing::info!("Apple Voice Processing enabled (AGC, noise suppression, echo cancellation)");
-                                    input
-                                },
-                                Err(e) => {
-                                    tracing::error!("Failed to create Apple Voice Processing input, falling back to basic mic: {:?}", e);
-                                    hypr_audio::AudioInput::from_mic()
-                                }
-                            };
-                            match input.stream() {
-                                Ok(stream) => stream,
-                                Err(e) => {
-                                    tracing::error!("Failed to create mic stream: {:?}", e);
-                                    return;
-                                }
-                            }
+                            let mut input = hypr_audio::AudioInput::from_apple_voice_processing()
+                                .expect("Apple Voice Processing must be available - no fallbacks allowed");
+                            tracing::info!("Apple Voice Processing enabled (AGC, noise suppression, echo cancellation)");
+                            input.stream()
+                                .expect("Apple Voice Processing stream must initialize successfully")
                         };
                         let mut mic_stream = mic_sample_stream.resample(SAMPLE_RATE).chunks(1024);
                         
@@ -173,13 +161,8 @@ impl Session {
                     let rt = tokio::runtime::Handle::current();
                     rt.block_on(async {
                         // Create audio streams inside the blocking task
-                        let speaker_sample_stream = match hypr_audio::AudioInput::from_speaker(None).stream() {
-                            Ok(stream) => stream,
-                            Err(e) => {
-                                tracing::error!("Failed to create speaker stream: {:?}", e);
-                                return;
-                            }
-                        };
+                        let speaker_sample_stream = hypr_audio::AudioInput::from_speaker(None).stream()
+                            .expect("Speaker stream must initialize successfully - no fallbacks allowed");
                         let mut speaker_stream = speaker_sample_stream.resample(SAMPLE_RATE).chunks(1024);
                         
                         let mut is_muted = *speaker_muted_rx.borrow();

@@ -56,9 +56,7 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ListenerPluginExt<R> for T {
 
         #[cfg(not(target_os = "macos"))]
         {
-            let mut mic_sample_stream = hypr_audio::AudioInput::from_mic().stream();
-            let sample = mic_sample_stream.next().await;
-            Ok(sample.is_some())
+            panic!("Microphone access checking only supported on macOS - no fallbacks allowed");
         }
     }
 
@@ -86,8 +84,7 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ListenerPluginExt<R> for T {
 
         #[cfg(not(target_os = "macos"))]
         {
-            let mut mic_sample_stream = hypr_audio::AudioInput::from_mic().stream();
-            mic_sample_stream.next().await;
+            panic!("Microphone access request only supported on macOS - no fallbacks allowed");
         }
 
         Ok(())

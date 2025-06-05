@@ -1,6 +1,5 @@
 use std::future::Future;
 
-use futures_util::StreamExt;
 use hypr_audio::cpal::traits::{DeviceTrait, HostTrait};
 
 #[cfg(target_os = "macos")]
@@ -94,14 +93,19 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ListenerPluginExt<R> for T {
         Ok(())
     }
 
-    #[tracing::instrument(skip_all)]
     async fn request_system_audio_access(&self) -> Result<(), crate::Error> {
-        let stop = hypr_audio::AudioOutput::silence();
-
-        let mut speaker_sample_stream = hypr_audio::AudioInput::from_speaker(None).stream();
-        speaker_sample_stream.next().await;
-
-        let _ = stop.send(());
+        tokio::task::spawn_blocking(|| {
+            let _stop = hypr_audio::AudioOutput::silence();
+            
+            // Just try to create the speaker input to trigger permission request
+            let _speaker_input = hypr_audio::AudioInput::from_speaker(None);
+            
+            Ok::<(), anyhow::Error>(())
+        })
+        .await
+        .map_err(|e| crate::Error::AnyhowError(anyhow::anyhow!("Join error: {}", e)))?
+        .map_err(crate::Error::AnyhowError)?;
+        
         Ok(())
     }
 

@@ -39,6 +39,7 @@ tauri = { workspace = true, features = ["specta", "test"] }
 specta = { workspace = true }
 tauri-specta = { workspace = true, features = ["derive", "typescript"] }
 
+anyhow = { workspace = true }
 bytes = { workspace = true }
 chrono = { workspace = true }
 codes-iso-639 = { workspace = true }

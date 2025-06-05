@@ -14,6 +14,8 @@ pub enum Error {
     DatabaseError(#[from] tauri_plugin_db::Error),
     #[error(transparent)]
     ConnectorError(#[from] tauri_plugin_connector::Error),
+    #[error(transparent)]
+    AnyhowError(#[from] anyhow::Error),
     #[error("no session")]
     NoneSession,
     #[error("start session failed")]

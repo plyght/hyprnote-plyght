@@ -176,7 +176,7 @@ function LocationBasedConnectivity() {
           <div>
             <div className="text-sm font-medium mb-2">Trusted Networks</div>
             <div className="space-y-2">
-              {trustedSsidsQuery.data?.map((ssid) => (
+              {trustedSsidsQuery.data?.map((ssid: string) => (
                 <div
                   key={ssid}
                   className="flex items-center justify-between p-2 bg-muted rounded"

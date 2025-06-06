@@ -16,7 +16,7 @@ use tauri::Manager;
 
 const PLUGIN_NAME: &str = "location-connectivity";
 
-pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .invoke_handler(tauri::generate_handler![
             commands::get_current_ssid,
@@ -41,11 +41,16 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_location_connectivity() {
-        let _app = tauri::test::mock_builder()
+
+    fn create_app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::App<R> {
+        builder
             .plugin(init())
             .build(tauri::test::mock_context(tauri::test::noop_assets()))
-            .unwrap();
+            .unwrap()
+    }
+
+    #[test]
+    fn test_location_connectivity() {
+        let _app = create_app(tauri::test::mock_builder());
     }
 }

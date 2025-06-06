@@ -3,11 +3,10 @@ mod wifi_macos {
     use crate::LocationConnectivityError;
     use std::process::Command;
 
-    // WiFi SSID detection for macOS using multiple methods
+    // Uses multiple commands as fallbacks since macOS WiFi detection methods vary by system configuration
     pub fn get_wifi_ssid() -> Result<Option<String>, LocationConnectivityError> {
         tracing::debug!("Attempting WiFi SSID detection");
         
-        // Method 1: Try networksetup command
         match get_ssid_via_networksetup() {
             Ok(Some(ssid)) => {
                 tracing::debug!("WiFi SSID detected via networksetup: {}", ssid);
@@ -17,7 +16,6 @@ mod wifi_macos {
             Err(e) => tracing::debug!("networksetup method failed: {}", e),
         }
         
-        // Method 2: Try airport command (if available)
         match get_ssid_via_airport() {
             Ok(Some(ssid)) => {
                 tracing::debug!("WiFi SSID detected via airport: {}", ssid);
@@ -27,7 +25,6 @@ mod wifi_macos {
             Err(e) => tracing::debug!("airport method failed: {}", e),
         }
         
-        // Method 3: Try system_profiler (slower but comprehensive)
         match get_ssid_via_system_profiler() {
             Ok(Some(ssid)) => {
                 tracing::debug!("WiFi SSID detected via system_profiler: {}", ssid);
@@ -41,9 +38,8 @@ mod wifi_macos {
         Ok(None)
     }
 
-    // Primary method: Use networksetup to get current airport network
     fn get_ssid_via_networksetup() -> Result<Option<String>, LocationConnectivityError> {
-        // Try common interface names
+        // Try common interface names since WiFi interface varies by hardware
         let interfaces = ["en0", "en1", "en2"];
         
         for interface in &interfaces {
@@ -58,7 +54,6 @@ mod wifi_macos {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
                 
-                // Parse output like "Current Wi-Fi Network: NetworkName"
                 if let Some(ssid) = parse_networksetup_output(&output_str) {
                     return Ok(Some(ssid));
                 }
@@ -68,9 +63,8 @@ mod wifi_macos {
         Ok(None)
     }
 
-    // Secondary method: Use airport command (if available)
     fn get_ssid_via_airport() -> Result<Option<String>, LocationConnectivityError> {
-        // Try the airport command which might be available
+        // Airport command location varies and isn't always available
         let airport_paths = [
             "/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport",
             "/usr/local/bin/airport",
@@ -85,7 +79,6 @@ mod wifi_macos {
                 if output.status.success() {
                     let output_str = String::from_utf8_lossy(&output.stdout);
                     
-                    // Parse output for SSID line
                     if let Some(ssid) = parse_airport_output(&output_str) {
                         return Ok(Some(ssid));
                     }
@@ -98,7 +91,6 @@ mod wifi_macos {
         Ok(None)
     }
 
-    // Tertiary method: Use system_profiler (slower but comprehensive)
     fn get_ssid_via_system_profiler() -> Result<Option<String>, LocationConnectivityError> {
         let output = Command::new("system_profiler")
             .arg("SPAirPortDataType")
@@ -111,7 +103,6 @@ mod wifi_macos {
         if output.status.success() {
             let output_str = String::from_utf8_lossy(&output.stdout);
             
-            // Try to parse JSON output
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&output_str) {
                 if let Some(ssid) = parse_system_profiler_json(&json) {
                     return Ok(Some(ssid));
@@ -124,7 +115,6 @@ mod wifi_macos {
         Ok(None)
     }
 
-    // Parse networksetup output
     fn parse_networksetup_output(output: &str) -> Option<String> {
         for line in output.lines() {
             if line.starts_with("Current Wi-Fi Network:") {
@@ -137,7 +127,6 @@ mod wifi_macos {
         None
     }
 
-    // Parse airport command output
     fn parse_airport_output(output: &str) -> Option<String> {
         for line in output.lines() {
             if line.trim().starts_with("SSID:") {
@@ -150,9 +139,7 @@ mod wifi_macos {
         None
     }
 
-    // Parse system_profiler JSON output
     fn parse_system_profiler_json(json: &serde_json::Value) -> Option<String> {
-        // Navigate through the JSON structure to find current network SSID
         if let Some(airport_data) = json.get("SPAirPortDataType") {
             if let Some(interfaces) = airport_data.as_array() {
                 for interface in interfaces {
@@ -161,7 +148,6 @@ mod wifi_macos {
                             for network in networks_array {
                                 if let Some(current) = network.get("_name") {
                                     if let Some(ssid_str) = current.as_str() {
-                                        // Check if this is the current network
                                         if network.get("spairport_network_cc").is_some() {
                                             return Some(ssid_str.to_string());
                                         }

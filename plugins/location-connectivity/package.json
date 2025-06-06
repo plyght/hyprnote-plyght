@@ -2,7 +2,8 @@
   "name": "@hypr/plugin-location-connectivity",
   "version": "0.1.0",
   "private": true,
-  "main": "./js/index.ts",
+  "main": "dist/js/index.js",
+  "types": "dist/js/index.d.ts",
   "scripts": {
     "codegen": "cargo test -p tauri-plugin-location-connectivity"
   },

@@ -119,12 +119,25 @@ mod wifi_macos {
         for line in output.lines() {
             if line.starts_with("Current Wi-Fi Network:") {
                 let ssid = line.replace("Current Wi-Fi Network:", "").trim().to_string();
-                if !ssid.is_empty() && ssid != "You are not associated with an AirPort network." {
+                // Check if it's a valid SSID (not empty and doesn't contain common error indicators)
+                if !ssid.is_empty() && !is_error_message(&ssid) {
                     return Some(ssid);
                 }
             }
         }
         None
+    }
+    
+    fn is_error_message(text: &str) -> bool {
+        let text_lower = text.to_lowercase();
+        // Common error indicators that appear in various languages
+        text_lower.contains("not associated") 
+            || text_lower.contains("not connected")
+            || text_lower.contains("no network")
+            || text_lower.contains("airport")  // Often indicates error messages from airport utility
+            || text_lower.contains("error")
+            || text_lower.starts_with("unable")
+            || text_lower.starts_with("failed")
     }
 
     fn parse_airport_output(output: &str) -> Option<String> {

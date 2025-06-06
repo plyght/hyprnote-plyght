@@ -112,8 +112,31 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
             should_use_cloud: status.should_use_cloud,
         };
         
-        if let Err(e) = self.app_handle.emit("location-connectivity://location-changed", &event) {
-            tracing::error!("Failed to emit location event: {}", e);
+        self.emit_location_event_with_retry(&event).await;
+    }
+    
+    async fn emit_location_event_with_retry(&self, event: &LocationEvent) {
+        const MAX_RETRIES: usize = 3;
+        const RETRY_DELAY_MS: u64 = 100;
+        
+        for attempt in 0..MAX_RETRIES {
+            match self.app_handle.emit("location-connectivity://location-changed", event) {
+                Ok(()) => {
+                    if attempt > 0 {
+                        tracing::debug!("Successfully emitted location event after {} retries", attempt);
+                    }
+                    return;
+                }
+                Err(e) => {
+                    if attempt < MAX_RETRIES - 1 {
+                        tracing::warn!("Failed to emit location event (attempt {}/{}): {}. Retrying...", 
+                            attempt + 1, MAX_RETRIES, e);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_DELAY_MS)).await;
+                    } else {
+                        tracing::error!("Failed to emit location event after {} attempts: {}", MAX_RETRIES, e);
+                    }
+                }
+            }
         }
     }
     

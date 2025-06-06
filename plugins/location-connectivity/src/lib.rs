@@ -29,6 +29,7 @@ fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
             commands::is_in_trusted_location,
             commands::get_location_status,
         ])
+        .events(tauri_specta::collect_events![types::LocationEvent])
         .error_handling(tauri_specta::ErrorHandlingMode::Throw)
 }
 
@@ -37,7 +38,8 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 
     tauri::plugin::Builder::new(PLUGIN_NAME)
         .invoke_handler(specta_builder.invoke_handler())
-        .setup(|app_handle, _api| {
+        .setup(move |app_handle, _api| {
+            specta_builder.mount_events(app_handle);
             let state = LocationConnectivityState::new(app_handle);
             app_handle.manage(state);
             

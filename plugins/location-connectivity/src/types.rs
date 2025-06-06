@@ -17,7 +17,7 @@ pub struct TrustedLocation {
     pub added_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, Type, tauri_specta::Event)]
 pub struct LocationEvent {
     pub event_type: LocationEventType,
     pub current_ssid: Option<String>,

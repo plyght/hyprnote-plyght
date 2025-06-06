@@ -47,10 +47,26 @@ export const commands = {
 
 /** user-defined events **/
 
+export const events = __makeEvents__<{
+  locationEvent: LocationEvent;
+}>({
+  locationEvent: "plugin:location-connectivity:location-event",
+});
+
 /** user-defined constants **/
 
 /** user-defined types **/
 
+export type LocationEvent = {
+  event_type: LocationEventType;
+  current_ssid: string | null;
+  is_trusted: boolean;
+  should_use_cloud: boolean;
+};
+export type LocationEventType =
+  | "location_changed"
+  | "trust_status_changed"
+  | "settings_changed";
 export type LocationStatus = {
   is_enabled: boolean;
   current_ssid: string | null;

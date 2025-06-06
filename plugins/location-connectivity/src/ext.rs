@@ -19,6 +19,16 @@ pub struct LocationConnectivityState<R: tauri::Runtime> {
     monitoring_active: Arc<RwLock<bool>>,
 }
 
+impl<R: tauri::Runtime> Clone for LocationConnectivityState<R> {
+    fn clone(&self) -> Self {
+        Self {
+            app_handle: self.app_handle.clone(),
+            current_status: self.current_status.clone(),
+            monitoring_active: self.monitoring_active.clone(),
+        }
+    }
+}
+
 impl<R: tauri::Runtime> LocationConnectivityState<R> {
     pub fn new(app_handle: &tauri::AppHandle<R>) -> Self {
         let state = Self {
@@ -26,6 +36,14 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
             current_status: Arc::new(RwLock::new(LocationStatus::default())),
             monitoring_active: Arc::new(RwLock::new(false)),
         };
+        
+        // Initialize the status immediately
+        let state_clone = state.clone();
+        tokio::spawn(async move {
+            if let Err(e) = state_clone.update_location_status().await {
+                tracing::warn!("Failed to initialize location status: {}", e);
+            }
+        });
         
         // Start background monitoring
         state.start_monitoring();
@@ -56,6 +74,11 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
         
         let should_use_cloud = is_enabled && is_in_trusted_location;
         
+        tracing::debug!(
+            "Location status update: enabled={}, current_ssid={:?}, trusted_ssids={:?}, is_in_trusted_location={}, should_use_cloud={}",
+            is_enabled, current_ssid, trusted_ssids, is_in_trusted_location, should_use_cloud
+        );
+        
         let new_status = LocationStatus {
             is_enabled,
             current_ssid: current_ssid.clone(),
@@ -67,12 +90,14 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
         let mut current_status = self.current_status.write().await;
         let status_changed = new_status.current_ssid != current_status.current_ssid 
             || new_status.is_in_trusted_location != current_status.is_in_trusted_location
-            || new_status.should_use_cloud != current_status.should_use_cloud;
+            || new_status.should_use_cloud != current_status.should_use_cloud
+            || new_status.is_enabled != current_status.is_enabled;
         
         *current_status = new_status.clone();
         drop(current_status);
         
         if status_changed {
+            tracing::debug!("Location status changed, emitting event");
             self.emit_location_event(LocationEventType::LocationChanged, &new_status).await;
         }
         
@@ -97,12 +122,15 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
         let monitoring_active = self.monitoring_active.clone();
         
         tokio::spawn(async move {
-            let mut is_active = monitoring_active.write().await;
-            if *is_active {
-                return; // Already monitoring
+            {
+                let mut is_active = monitoring_active.write().await;
+                if *is_active {
+                    return; // Already monitoring
+                }
+                *is_active = true;
             }
-            *is_active = true;
-            drop(is_active);
+            
+            tracing::info!("Starting location connectivity monitoring");
             
             // Make interval configurable, default to 5 seconds
             let check_interval = std::env::var("LOCATION_CHECK_INTERVAL")
@@ -119,6 +147,7 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
                         tracing::warn!("Failed to update location status: {}", e);
                     }
                 } else {
+                    tracing::info!("App shutting down, stopping location monitoring");
                     break; // App is shutting down
                 }
             }

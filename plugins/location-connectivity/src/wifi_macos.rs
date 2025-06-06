@@ -4,21 +4,39 @@ use std::process::Command;
 
 // WiFi SSID detection for macOS using multiple methods
 pub fn get_wifi_ssid() -> Result<Option<String>, LocationConnectivityError> {
+    tracing::debug!("Attempting WiFi SSID detection");
+    
     // Method 1: Try networksetup command
-    if let Ok(ssid) = get_ssid_via_networksetup() {
-        return Ok(ssid);
+    match get_ssid_via_networksetup() {
+        Ok(Some(ssid)) => {
+            tracing::debug!("WiFi SSID detected via networksetup: {}", ssid);
+            return Ok(Some(ssid));
+        }
+        Ok(None) => tracing::debug!("No SSID found via networksetup"),
+        Err(e) => tracing::debug!("networksetup method failed: {}", e),
     }
     
     // Method 2: Try airport command (if available)
-    if let Ok(ssid) = get_ssid_via_airport() {
-        return Ok(ssid);
+    match get_ssid_via_airport() {
+        Ok(Some(ssid)) => {
+            tracing::debug!("WiFi SSID detected via airport: {}", ssid);
+            return Ok(Some(ssid));
+        }
+        Ok(None) => tracing::debug!("No SSID found via airport"),
+        Err(e) => tracing::debug!("airport method failed: {}", e),
     }
     
     // Method 3: Try system_profiler (slower but comprehensive)
-    if let Ok(ssid) = get_ssid_via_system_profiler() {
-        return Ok(ssid);
+    match get_ssid_via_system_profiler() {
+        Ok(Some(ssid)) => {
+            tracing::debug!("WiFi SSID detected via system_profiler: {}", ssid);
+            return Ok(Some(ssid));
+        }
+        Ok(None) => tracing::debug!("No SSID found via system_profiler"),
+        Err(e) => tracing::debug!("system_profiler method failed: {}", e),
     }
     
+    tracing::debug!("No WiFi SSID detected by any method");
     Ok(None)
 }
 

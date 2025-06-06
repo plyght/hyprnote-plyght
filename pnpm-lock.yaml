@@ -863,6 +863,12 @@ importers:
         specifier: ^2.5.0
         version: 2.5.0
 
+  plugins/location-connectivity:
+    dependencies:
+      '@tauri-apps/api':
+        specifier: ^2.5.0
+        version: 2.5.0
+
   plugins/membership:
     dependencies:
       '@tauri-apps/api':

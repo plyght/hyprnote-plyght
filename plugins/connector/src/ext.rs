@@ -242,7 +242,7 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
     async fn should_use_cloud_for_location(&self) -> bool {
         // Try to check location-connectivity status
         // If plugin is not available or location-based connectivity is disabled, default to cloud
-        if let Some(location_state) = self.try_state::<tauri_plugin_location_connectivity::LocationConnectivityState<R>>() {
+        if let Some(location_state) = self.try_state::<tauri_plugin_location_connectivity::LocationConnectivityState<tauri::Wry>>() {
             if let Ok(status) = location_state.get_location_status().await {
                 return status.should_use_cloud;
             }

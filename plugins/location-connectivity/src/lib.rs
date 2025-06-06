@@ -16,9 +16,10 @@ use tauri::Manager;
 
 const PLUGIN_NAME: &str = "location-connectivity";
 
-pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
-    tauri::plugin::Builder::new(PLUGIN_NAME)
-        .invoke_handler(tauri::generate_handler![
+fn make_specta_builder() -> tauri_specta::Builder<tauri::Wry> {
+    tauri_specta::Builder::<tauri::Wry>::new()
+        .plugin_name(PLUGIN_NAME)
+        .commands(tauri_specta::collect_commands![
             commands::get_current_ssid,
             commands::get_trusted_ssids,
             commands::add_trusted_ssid,
@@ -28,6 +29,14 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
             commands::is_in_trusted_location,
             commands::get_location_status,
         ])
+        .error_handling(tauri_specta::ErrorHandlingMode::Throw)
+}
+
+pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
+    let specta_builder = make_specta_builder();
+
+    tauri::plugin::Builder::new(PLUGIN_NAME)
+        .invoke_handler(specta_builder.invoke_handler())
         .setup(|app_handle, _api| {
             let state = LocationConnectivityState::new(app_handle);
             app_handle.manage(state);
@@ -41,16 +50,17 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 mod test {
     use super::*;
 
-
-    fn create_app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::App<R> {
-        builder
-            .plugin(init())
-            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+    #[test]
+    fn export_types() {
+        make_specta_builder()
+            .export(
+                specta_typescript::Typescript::default()
+                    .header("// @ts-nocheck\n\n")
+                    .formatter(specta_typescript::formatter::prettier)
+                    .bigint(specta_typescript::BigIntExportBehavior::Number),
+                "./js/bindings.gen.ts",
+            )
             .unwrap()
     }
 
-    #[test]
-    fn test_location_connectivity() {
-        let _app = create_app(tauri::test::mock_builder());
-    }
 }

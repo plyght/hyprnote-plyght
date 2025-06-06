@@ -1,7 +1,6 @@
 use std::future::Future;
 
 use crate::{Connection, ConnectionLLM, ConnectionSTT, StoreKey};
-use tauri::Manager;
 use tauri_plugin_store2::StorePluginExt;
 
 pub trait ConnectorPluginExt<R: tauri::Runtime> {
@@ -132,7 +131,6 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
             use tauri_plugin_auth::{AuthPluginExt, StoreKey, VaultKey};
 
             if let Ok(Some(_)) = self.get_from_store(StoreKey::AccountId) {
-                // Check location-based connectivity for pro users
                 let should_use_cloud = self.should_use_cloud_for_location().await;
                 
                 if should_use_cloud {
@@ -151,8 +149,6 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
                     let conn = ConnectionLLM::HyprCloud(Connection { api_base, api_key });
                     return Ok(conn);
                 } else {
-                    // Location-based connectivity says use local, but still allow custom override
-                    // Fall through to check custom LLM settings
                 }
             }
         }
@@ -202,7 +198,6 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
             use tauri_plugin_auth::{AuthPluginExt, StoreKey, VaultKey};
 
             if let Ok(Some(_)) = self.get_from_store(StoreKey::AccountId) {
-                // Check location-based connectivity for pro users
                 let should_use_cloud = self.should_use_cloud_for_location().await;
                 
                 if should_use_cloud {
@@ -221,8 +216,6 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
                     let conn = ConnectionSTT::HyprCloud(Connection { api_base, api_key });
                     return Ok(conn);
                 } else {
-                    // Location-based connectivity says use local
-                    // Fall through to local STT
                 }
             }
         }

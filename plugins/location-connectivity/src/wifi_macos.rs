@@ -71,6 +71,8 @@ fn get_ssid_via_airport() -> Result<Option<String>, LocationConnectivityError> {
                     return Ok(Some(ssid));
                 }
             }
+        } else {
+            tracing::debug!("Failed to execute airport command at {}", airport_path);
         }
     }
     
@@ -95,6 +97,8 @@ fn get_ssid_via_system_profiler() -> Result<Option<String>, LocationConnectivity
             if let Some(ssid) = parse_system_profiler_json(&json) {
                 return Ok(Some(ssid));
             }
+        } else {
+            tracing::debug!("Failed to parse system_profiler JSON output");
         }
     }
     

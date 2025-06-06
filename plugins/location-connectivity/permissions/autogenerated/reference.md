@@ -2,7 +2,7 @@
 
 Default permissions for the location-connectivity plugin
 
-#### This default permission set includes the following:
+### This default permission set includes the following
 
 - `allow-get-current-ssid`
 - `allow-get-trusted-ssids`

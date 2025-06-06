@@ -45,8 +45,8 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
     pub async fn update_location_status(&self) -> Result<(), LocationConnectivityError> {
         let current_ssid = self.get_current_ssid().await?;
         
-        let is_enabled = crate::store::get_location_based_enabled(self.app_handle.clone()).await?;
-        let trusted_ssids = crate::store::get_trusted_ssids(self.app_handle.clone()).await?;
+        let is_enabled = crate::store::get_location_based_enabled(self.app_handle.clone())?;
+        let trusted_ssids = crate::store::get_trusted_ssids(self.app_handle.clone())?;
         
         let is_in_trusted_location = if let Some(ref ssid) = current_ssid {
             trusted_ssids.contains(ssid)
@@ -104,7 +104,12 @@ impl<R: tauri::Runtime> LocationConnectivityState<R> {
             *is_active = true;
             drop(is_active);
             
-            let mut interval = interval(Duration::from_secs(5)); // Check every 5 seconds
+            // Make interval configurable, default to 5 seconds
+            let check_interval = std::env::var("LOCATION_CHECK_INTERVAL")
+                .ok()
+                .and_then(|s| s.parse::<u64>().ok())
+                .unwrap_or(5);
+            let mut interval = interval(Duration::from_secs(check_interval));
             
             loop {
                 interval.tick().await;

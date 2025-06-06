@@ -4,7 +4,7 @@ import { CloudLightningIcon, MapPinIcon, PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { commands as flagsCommands } from "@hypr/plugin-flags";
-import { commands as locationCommands } from "../../../../../../plugins/location-connectivity/js/index.ts";
+import { commands as locationCommands } from "@hypr/plugin-location-connectivity";
 import { Switch } from "@hypr/ui/components/ui/switch";
 import { Button } from "@hypr/ui/components/ui/button";
 import { Input } from "@hypr/ui/components/ui/input";

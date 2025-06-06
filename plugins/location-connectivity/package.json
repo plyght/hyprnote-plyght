@@ -1,5 +1,6 @@
 {
   "name": "@hypr/plugin-location-connectivity",
+  "version": "0.1.0",
   "private": true,
   "main": "./js/index.ts",
   "scripts": {

@@ -41,15 +41,11 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
 mod test {
     use super::*;
 
-    fn create_app(builder: tauri::Builder<tauri::Wry>) -> tauri::App<tauri::Wry> {
-        builder
-            .plugin(init())
-            .build(tauri::test::mock_context(tauri::test::noop_assets()))
-            .unwrap()
-    }
-
     #[test]
     fn test_location_connectivity() {
-        let _app = create_app(tauri::test::mock_builder());
+        let _app = tauri::test::mock_builder()
+            .plugin(init())
+            .build(tauri::test::mock_context(tauri::test::noop_assets()))
+            .unwrap();
     }
 }

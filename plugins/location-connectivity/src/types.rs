@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocationStatus {
     pub is_enabled: bool,
     pub current_ssid: Option<String>,
@@ -10,14 +9,14 @@ pub struct LocationStatus {
     pub should_use_cloud: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrustedLocation {
     pub ssid: String,
     pub name: Option<String>,
     pub added_at: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocationEvent {
     pub event_type: LocationEventType,
     pub current_ssid: Option<String>,
@@ -25,7 +24,7 @@ pub struct LocationEvent {
     pub should_use_cloud: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum LocationEventType {
     LocationChanged,

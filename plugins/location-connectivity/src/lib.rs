@@ -16,27 +16,18 @@ use tauri::Manager;
 
 const PLUGIN_NAME: &str = "location-connectivity";
 
-fn make_specta_builder<R: tauri::Runtime>() -> tauri_specta::Builder<R> {
-    tauri_specta::Builder::<R>::new()
-        .plugin_name(PLUGIN_NAME)
-        .commands(tauri_specta::collect_commands![
-            commands::get_current_ssid::<tauri::Wry>,
-            commands::get_trusted_ssids::<tauri::Wry>,
-            commands::add_trusted_ssid::<tauri::Wry>,
-            commands::remove_trusted_ssid::<tauri::Wry>,
-            commands::is_location_based_enabled::<tauri::Wry>,
-            commands::set_location_based_enabled::<tauri::Wry>,
-            commands::is_in_trusted_location::<tauri::Wry>,
-            commands::get_location_status::<tauri::Wry>,
-        ])
-        .error_handling(tauri_specta::ErrorHandlingMode::Throw)
-}
-
-pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
-    let specta_builder = make_specta_builder();
-
+pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
     tauri::plugin::Builder::new(PLUGIN_NAME)
-        .invoke_handler(specta_builder.invoke_handler())
+        .invoke_handler(tauri::generate_handler![
+            commands::get_current_ssid,
+            commands::get_trusted_ssids,
+            commands::add_trusted_ssid,
+            commands::remove_trusted_ssid,
+            commands::is_location_based_enabled,
+            commands::set_location_based_enabled,
+            commands::is_in_trusted_location,
+            commands::get_location_status,
+        ])
         .setup(|app_handle, _api| {
             let state = LocationConnectivityState::new(app_handle);
             app_handle.manage(state);
@@ -50,20 +41,7 @@ pub fn init<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
 mod test {
     use super::*;
 
-    #[test]
-    fn export_types() {
-        make_specta_builder::<tauri::Wry>()
-            .export(
-                specta_typescript::Typescript::default()
-                    .header("// @ts-nocheck\n\n")
-                    .formatter(specta_typescript::formatter::prettier)
-                    .bigint(specta_typescript::BigIntExportBehavior::Number),
-                "./js/bindings.gen.ts",
-            )
-            .unwrap()
-    }
-
-    fn create_app<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::App<R> {
+    fn create_app(builder: tauri::Builder<tauri::Wry>) -> tauri::App<tauri::Wry> {
         builder
             .plugin(init())
             .build(tauri::test::mock_context(tauri::test::noop_assets()))

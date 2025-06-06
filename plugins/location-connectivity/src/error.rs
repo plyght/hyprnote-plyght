@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
-use specta::Type;
 
-#[derive(thiserror::Error, Debug, Serialize, Deserialize, Type)]
+#[derive(thiserror::Error, Debug, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum LocationConnectivityError {
     #[error("Store error: {0}")]

@@ -88,16 +88,7 @@ impl Session {
         self.session_state_tx = Some(session_state_tx);
 
         let listen_client = setup_listen_client(&self.app, language, jargons).await?;
-
-        let mic_sample_stream = {
-            let mut input = hypr_audio::AudioInput::from_mic();
-            input.stream()
-        };
-        let mut mic_stream = mic_sample_stream.resample(SAMPLE_RATE).chunks(1024);
         tokio::time::sleep(Duration::from_millis(100)).await;
-
-        let speaker_sample_stream = hypr_audio::AudioInput::from_speaker(None).stream();
-        let mut speaker_stream = speaker_sample_stream.resample(SAMPLE_RATE).chunks(1024);
 
         let chunk_buffer_size: usize = 1024;
         let sample_buffer_size = (SAMPLE_RATE as usize) * 60 * 10;
@@ -115,53 +106,88 @@ impl Session {
 
         let mut tasks = JoinSet::new();
 
+        // Handle mic audio stream in a blocking task
         tasks.spawn({
             let mic_muted_rx = mic_muted_rx_main.clone();
+            let mic_tx = mic_tx.clone();
+            
             async move {
-                let mut is_muted = *mic_muted_rx.borrow();
-                let watch_rx = mic_muted_rx.clone();
+                tokio::task::spawn_blocking(move || {
+                    let rt = tokio::runtime::Handle::current();
+                    rt.block_on(async {
+                        // Create audio streams inside the blocking task with Apple Voice Processing
+                        let mic_sample_stream = {
+                            let mut input = hypr_audio::AudioInput::from_apple_voice_processing()
+                                .expect("Apple Voice Processing must be available - no fallbacks allowed");
+                            tracing::info!("Apple Voice Processing enabled (AGC, noise suppression, echo cancellation)");
+                            input.stream()
+                                .expect("Apple Voice Processing stream must initialize successfully")
+                        };
+                        let mut mic_stream = mic_sample_stream.resample(SAMPLE_RATE).chunks(1024);
+                        
+                        let mut is_muted = *mic_muted_rx.borrow();
+                        let watch_rx = mic_muted_rx.clone();
 
-                while let Some(actual) = mic_stream.next().await {
-                    if watch_rx.has_changed().unwrap_or(false) {
-                        is_muted = *watch_rx.borrow();
-                    }
+                        while let Some(actual) = mic_stream.next().await {
+                            if watch_rx.has_changed().unwrap_or(false) {
+                                is_muted = *watch_rx.borrow();
+                            }
 
-                    let maybe_muted = if is_muted {
-                        vec![0.0; actual.len()]
-                    } else {
-                        actual
-                    };
+                            let maybe_muted = if is_muted {
+                                vec![0.0; actual.len()]
+                            } else {
+                                actual
+                            };
 
-                    if let Err(e) = mic_tx.send(maybe_muted).await {
-                        tracing::error!("mic_tx_send_error: {:?}", e);
-                        break;
-                    }
-                }
+                            if let Err(e) = mic_tx.send(maybe_muted).await {
+                                tracing::error!("mic_tx_send_error: {:?}", e);
+                                break;
+                            }
+                        }
+                    });
+                })
+                .await
+                .unwrap_or_else(|e| tracing::error!("Mic task join error: {:?}", e));
             }
         });
 
+        // Handle speaker audio stream in a blocking task
         tasks.spawn({
             let speaker_muted_rx = speaker_muted_rx_main.clone();
+            let speaker_tx = speaker_tx.clone();
+            
             async move {
-                let mut is_muted = *speaker_muted_rx.borrow();
-                let watch_rx = speaker_muted_rx.clone();
+                tokio::task::spawn_blocking(move || {
+                    let rt = tokio::runtime::Handle::current();
+                    rt.block_on(async {
+                        // Create audio streams inside the blocking task
+                        let speaker_sample_stream = hypr_audio::AudioInput::from_speaker(None).stream()
+                            .expect("Speaker stream must initialize successfully - no fallbacks allowed");
+                        let mut speaker_stream = speaker_sample_stream.resample(SAMPLE_RATE).chunks(1024);
+                        
+                        let mut is_muted = *speaker_muted_rx.borrow();
+                        let watch_rx = speaker_muted_rx.clone();
 
-                while let Some(actual) = speaker_stream.next().await {
-                    if watch_rx.has_changed().unwrap_or(false) {
-                        is_muted = *watch_rx.borrow();
-                    }
+                        while let Some(actual) = speaker_stream.next().await {
+                            if watch_rx.has_changed().unwrap_or(false) {
+                                is_muted = *watch_rx.borrow();
+                            }
 
-                    let maybe_muted = if is_muted {
-                        vec![0.0; actual.len()]
-                    } else {
-                        actual
-                    };
+                            let maybe_muted = if is_muted {
+                                vec![0.0; actual.len()]
+                            } else {
+                                actual
+                            };
 
-                    if let Err(e) = speaker_tx.send(maybe_muted).await {
-                        tracing::error!("speaker_tx_send_error: {:?}", e);
-                        break;
-                    }
-                }
+                            if let Err(e) = speaker_tx.send(maybe_muted).await {
+                                tracing::error!("speaker_tx_send_error: {:?}", e);
+                                break;
+                            }
+                        }
+                    });
+                })
+                .await
+                .unwrap_or_else(|e| tracing::error!("Speaker task join error: {:?}", e));
             }
         });
 

@@ -976,6 +976,8 @@ dependencies = [
  "futures-util",
  "hound",
  "kalosm-sound",
+ "objc2 0.6.1",
+ "objc2-foundation 0.3.1",
  "ringbuf",
  "rodio",
  "serde",
@@ -985,6 +987,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tracing",
+ "tracing-subscriber",
  "wasapi",
 ]
 
@@ -13686,6 +13689,7 @@ dependencies = [
 name = "tauri-plugin-listener"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "audio 0.1.0",
  "audio-utils",
  "bytes",

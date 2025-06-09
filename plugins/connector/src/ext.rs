@@ -132,7 +132,7 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
 
             if let Ok(Some(_)) = self.get_from_store(StoreKey::AccountId) {
                 let should_use_cloud = self.should_use_cloud_for_location().await;
-                
+
                 if should_use_cloud {
                     let api_base = if cfg!(debug_assertions) {
                         "http://127.0.0.1:1234".to_string()
@@ -199,7 +199,7 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
 
             if let Ok(Some(_)) = self.get_from_store(StoreKey::AccountId) {
                 let should_use_cloud = self.should_use_cloud_for_location().await;
-                
+
                 if should_use_cloud {
                     let api_base = if cfg!(debug_assertions) {
                         "http://127.0.0.1:1234".to_string()
@@ -242,12 +242,15 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> ConnectorPluginExt<R> for T {
     async fn should_use_cloud_for_location(&self) -> bool {
         // Try to check location-connectivity status
         // If plugin is not available or location-based connectivity is disabled, default to cloud
-        if let Some(location_state) = self.try_state::<tauri_plugin_location_connectivity::LocationConnectivityState<tauri::Wry>>() {
+        if let Some(location_state) = self
+            .try_state::<tauri_plugin_location_connectivity::LocationConnectivityState<
+            tauri::Wry,
+        >>() {
             if let Ok(status) = location_state.get_location_status().await {
                 return status.should_use_cloud;
             }
         }
-        
+
         // Default to cloud if location-connectivity is not available
         true
     }

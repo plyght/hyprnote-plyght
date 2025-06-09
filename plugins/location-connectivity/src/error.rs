@@ -5,25 +5,25 @@ use serde::{Deserialize, Serialize};
 pub enum LocationConnectivityError {
     #[error("Store error: {0}")]
     Store(String),
-    
+
     #[error("WiFi detection error: {0}")]
     WifiDetection(String),
-    
+
     #[error("Location detection not supported on this platform")]
     PlatformNotSupported,
-    
+
     #[error("Permission denied for location access")]
     PermissionDenied,
-    
+
     #[error("Network interface not available")]
     NetworkUnavailable,
-    
+
     #[error("Invalid SSID format: {0}")]
     InvalidSsid(String),
-    
+
     #[error("JSON error: {0}")]
     Json(String),
-    
+
     #[error("Unknown error: {0}")]
     Unknown(String),
 }

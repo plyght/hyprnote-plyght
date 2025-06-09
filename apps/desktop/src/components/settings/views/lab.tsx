@@ -5,9 +5,9 @@ import { useState } from "react";
 
 import { commands as flagsCommands } from "@hypr/plugin-flags";
 import { commands as locationCommands } from "@hypr/plugin-location-connectivity";
-import { Switch } from "@hypr/ui/components/ui/switch";
 import { Button } from "@hypr/ui/components/ui/button";
 import { Input } from "@hypr/ui/components/ui/input";
+import { Switch } from "@hypr/ui/components/ui/switch";
 
 export default function Lab() {
   return (
@@ -146,20 +146,22 @@ function LocationBasedConnectivity() {
             <div>
               <div className="text-sm font-medium">Current Network</div>
               <div className="text-xs text-muted-foreground">
-                {currentSsidQuery.data ? (
-                  <>
-                    {currentSsidQuery.data}
-                    {trustedSsidsQuery.data?.includes(currentSsidQuery.data) && (
-                      <span className="ml-2 text-green-600">• Trusted</span>
-                    )}
-                  </>
-                ) : (
-                  "No WiFi connected"
-                )}
+                {currentSsidQuery.data
+                  ? (
+                    <>
+                      {currentSsidQuery.data}
+                      {trustedSsidsQuery.data?.includes(currentSsidQuery.data) && (
+                        <span className="ml-2 text-green-600">• Trusted</span>
+                      )}
+                    </>
+                  )
+                  : (
+                    "No WiFi connected"
+                  )}
               </div>
             </div>
-            {currentSsidQuery.data && 
-              !trustedSsidsQuery.data?.includes(currentSsidQuery.data) && (
+            {currentSsidQuery.data
+              && !trustedSsidsQuery.data?.includes(currentSsidQuery.data) && (
               <Button
                 variant="outline"
                 size="sm"
@@ -192,7 +194,7 @@ function LocationBasedConnectivity() {
                   </Button>
                 </div>
               ))}
-              
+
               {trustedSsidsQuery.data?.length === 0 && (
                 <div className="text-xs text-muted-foreground p-2">
                   No trusted networks configured

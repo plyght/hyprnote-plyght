@@ -42,7 +42,7 @@ pub fn init() -> tauri::plugin::TauriPlugin<tauri::Wry> {
             specta_builder.mount_events(app_handle);
             let state = LocationConnectivityState::new(app_handle);
             app_handle.manage(state);
-            
+
             Ok(())
         })
         .build()
@@ -64,5 +64,4 @@ mod test {
             )
             .unwrap()
     }
-
 }

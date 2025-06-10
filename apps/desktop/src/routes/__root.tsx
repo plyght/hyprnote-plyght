@@ -123,9 +123,9 @@ const TanStackQueryDevtools = process.env.NODE_ENV === "production"
 
 function ClipboardHandler() {
   useEffect(() => {
-    const handleCopy = (e: ClipboardEvent) => {
+    const handleCopy = async (e: ClipboardEvent) => {
       const text = e.clipboardData?.getData("text/plain") || "";
-      tauriCommands.safeWriteText(text);
+      await tauriCommands.safeWriteText(text);
     };
 
     document.addEventListener("copy", handleCopy);

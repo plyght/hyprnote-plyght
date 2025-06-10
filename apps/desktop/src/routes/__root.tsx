@@ -1,11 +1,11 @@
 // react-scan must be imported before React
 import { scan } from "react-scan";
 
+import { commands as tauriCommands } from "@/types/tauri.gen";
 import { useQuery } from "@tanstack/react-query";
 import { CatchNotFound, createRootRouteWithContext, Outlet, useNavigate } from "@tanstack/react-router";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { lazy, Suspense, useEffect } from "react";
 
 import { CatchNotFoundFallback, ErrorComponent, NotFoundComponent } from "@/components/control";
@@ -125,7 +125,7 @@ function ClipboardHandler() {
   useEffect(() => {
     const handleCopy = (e: ClipboardEvent) => {
       const text = e.clipboardData?.getData("text/plain") || "";
-      writeText(text);
+      tauriCommands.safeWriteText(text);
     };
 
     document.addEventListener("copy", handleCopy);

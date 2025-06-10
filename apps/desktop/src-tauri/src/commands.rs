@@ -64,7 +64,7 @@ pub async fn safe_write_text<R: tauri::Runtime>(
 
     // Try direct clipboard access first, fallback to main thread dispatch if needed
     let result = app.clipboard().write_text(&text);
-    
+
     match result {
         Ok(()) => {
             tracing::info!("Clipboard write successful");
@@ -72,7 +72,7 @@ pub async fn safe_write_text<R: tauri::Runtime>(
         }
         Err(e) => {
             tracing::error!("Clipboard write failed: {}", e);
-            
+
             #[cfg(target_os = "macos")]
             {
                 tracing::info!("Attempting main thread dispatch workaround");
@@ -93,18 +93,17 @@ pub async fn safe_write_text<R: tauri::Runtime>(
                 })?;
 
                 // Wait for result from main thread
-                let main_thread_result = rx.recv()
-                    .map_err(|e| {
-                        tracing::error!("Failed to receive from main thread: {}", e);
-                        e.to_string()
-                    })?;
-                
+                let main_thread_result = rx.recv().map_err(|e| {
+                    tracing::error!("Failed to receive from main thread: {}", e);
+                    e.to_string()
+                })?;
+
                 main_thread_result.map_err(|e| {
                     tracing::error!("Main thread clipboard operation failed: {}", e);
                     e.to_string()
                 })
             }
-            
+
             #[cfg(not(target_os = "macos"))]
             {
                 Err(e.to_string())

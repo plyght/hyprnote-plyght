@@ -62,7 +62,7 @@ export const convertHtmlToMarkdown = (
   // Convert ordered lists
   markdown = markdown.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (_, content) => {
     let counter = 1;
-    return content.replace(/<li[^>]*>(.*?)<\/li>/gis, () => `${counter++}. $1\n`) + "\n";
+    return content.replace(/<li[^>]*>(.*?)<\/li>/gis, (_: string, listItem: string) => `${counter++}. ${listItem}\n`) + "\n";
   });
 
   // Convert blockquotes

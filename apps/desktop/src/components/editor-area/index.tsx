@@ -136,6 +136,14 @@ export default function EditorArea({
           }
         }}
       >
+        {!showRaw && enhancedContent && (
+          <div className="sticky top-4 z-20 h-0 flex justify-end pr-4 pointer-events-none">
+            <div className="pointer-events-auto">
+              <CopyButton onCopy={handleCopyEnhanced} />
+            </div>
+          </div>
+        )}
+
         {editable
           ? (
             <Editor
@@ -152,12 +160,6 @@ export default function EditorArea({
             />
           )
           : <Renderer ref={editorRef} initialContent={noteContent} />}
-
-        {!showRaw && enhancedContent && (
-          <div className="absolute top-4 right-4 z-10">
-            <CopyButton onCopy={handleCopyEnhanced} />
-          </div>
-        )}
       </div>
 
       <AnimatePresence>

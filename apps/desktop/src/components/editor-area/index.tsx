@@ -88,12 +88,8 @@ export default function EditorArea({
 
   const handleCopyEnhanced = useCallback(async () => {
     if (enhancedContent) {
-      try {
-        const markdown = convertHtmlToMarkdown(enhancedContent);
-        await tauriCommands.clipboardWriteText(markdown);
-      } catch (error) {
-        console.error("Failed to copy enhanced notes:", error);
-      }
+      const markdown = convertHtmlToMarkdown(enhancedContent);
+      await tauriCommands.clipboardWriteText(markdown);
     }
   }, [enhancedContent]);
 

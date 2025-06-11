@@ -1,11 +1,14 @@
 import { toast } from "@hypr/ui/components/ui/toast";
 import { useMutation } from "@tanstack/react-query";
 import usePreviousValue from "beautiful-react-hooks/usePreviousValue";
+import { CheckIcon, CopyIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { AnimatePresence } from "motion/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useHypr } from "@/contexts";
+import { commands as tauriCommands } from "@/types/tauri.gen";
+import { convertHtmlToMarkdown } from "@/utils/parse";
 import { commands as analyticsCommands } from "@hypr/plugin-analytics";
 import { commands as connectorCommands } from "@hypr/plugin-connector";
 import { commands as dbCommands } from "@hypr/plugin-db";
@@ -83,6 +86,17 @@ export default function EditorArea({
     enhance.mutate();
   }, [enhance]);
 
+  const handleCopyEnhanced = useCallback(async () => {
+    if (enhancedContent) {
+      try {
+        const markdown = convertHtmlToMarkdown(enhancedContent);
+        await tauriCommands.clipboardWriteText(markdown);
+      } catch (error) {
+        console.error("Failed to copy enhanced notes:", error);
+      }
+    }
+  }, [enhancedContent]);
+
   const safelyFocusEditor = useCallback(() => {
     if (editorRef.current?.editor && editorRef.current.editor.isEditable) {
       requestAnimationFrame(() => {
@@ -112,7 +126,7 @@ export default function EditorArea({
 
       <div
         className={cn([
-          "h-full overflow-y-auto",
+          "relative h-full overflow-y-auto",
           enhancedContent && "pb-10",
         ])}
         onClick={(e) => {
@@ -138,6 +152,12 @@ export default function EditorArea({
             />
           )
           : <Renderer ref={editorRef} initialContent={noteContent} />}
+
+        {!showRaw && enhancedContent && (
+          <div className="absolute top-4 right-4 z-10">
+            <CopyButton onCopy={handleCopyEnhanced} />
+          </div>
+        )}
       </div>
 
       <AnimatePresence>
@@ -306,4 +326,32 @@ export function useAutoEnhance({
     sessionId,
     enhanceMutate,
   ]);
+}
+
+function CopyButton({ onCopy }: { onCopy: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleClick = () => {
+    onCopy();
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const buttonClasses = cn(
+    "rounded-md border px-2.5 py-1.5 transition-all ease-in-out",
+    "border-border bg-background/90 backdrop-blur-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-800",
+    "hover:scale-105 transition-transform duration-200 shadow-sm",
+  );
+
+  return (
+    <button
+      onClick={handleClick}
+      className={buttonClasses}
+      title="Copy notes"
+    >
+      {copied
+        ? <CheckIcon size={14} className="text-neutral-800" />
+        : <CopyIcon size={14} className="text-neutral-600" />}
+    </button>
+  );
 }

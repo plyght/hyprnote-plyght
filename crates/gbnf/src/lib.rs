@@ -26,18 +26,19 @@ mod tests {
     fn test_title_grammar() {
         let gbnf = gbnf_validator::Validator::new().unwrap();
 
-        // Valid titles (letters and spaces only)
-        assert!(gbnf.validate(TITLE, "Meeting Summary").unwrap());
-        assert!(gbnf.validate(TITLE, "Product Review Discussion").unwrap());
-        assert!(gbnf.validate(TITLE, "A").unwrap());
-        assert!(gbnf.validate(TITLE, "Planning Session").unwrap());
-
-        // Invalid titles (should fail)
-        assert!(!gbnf.validate(TITLE, "meeting summary").unwrap()); // lowercase start
-        assert!(!gbnf.validate(TITLE, "Meeting-Summary").unwrap()); // hyphen
-        assert!(!gbnf.validate(TITLE, "Meeting123").unwrap()); // numbers
-        assert!(!gbnf.validate(TITLE, "Q1 Planning Session").unwrap()); // numbers
-        assert!(!gbnf.validate(TITLE, "").unwrap()); // empty
+        for (input, expected) in vec![
+            ("Meeting Summary", true),
+            ("Product Review Discussion", true),
+            ("A", true),
+            ("Planning Session", true),
+            ("Q1 Planning Session", true),
+            ("meeting summary", false),
+            ("Meeting-Summary", false),
+            ("", false),
+        ] {
+            let result = gbnf.validate(TITLE, input).unwrap();
+            assert_eq!(result, expected, "failed: {}", input);
+        }
     }
 
     #[test]

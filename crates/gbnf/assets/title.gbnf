@@ -1,1 +1,3 @@
-root ::= [A-Z] ([A-Za-z] | " ")*
+char ::= [A-Za-z0-9]
+start ::= [A-Z0-9]
+root ::= start char* (" " char+)*

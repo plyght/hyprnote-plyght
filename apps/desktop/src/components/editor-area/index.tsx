@@ -15,7 +15,7 @@ import Editor, { type TiptapEditor } from "@hypr/tiptap/editor";
 import Renderer from "@hypr/tiptap/renderer";
 import { extractHashtags } from "@hypr/tiptap/shared";
 import { cn } from "@hypr/ui/lib/utils";
-import { markdownTransform, modelProvider, providerName, smoothStream, streamText } from "@hypr/utils/ai";
+import { generateText, markdownTransform, modelProvider, providerName, smoothStream, streamText } from "@hypr/utils/ai";
 import { useOngoingSession, useSession } from "@hypr/utils/contexts";
 import { enhanceFailedToast } from "../toast/shared";
 import { FloatingButton } from "./floating-button";
@@ -52,14 +52,14 @@ export default function EditorArea({
     [sessionId, showRaw],
   );
 
+  const generateTitle = useGenerateTitleMutation({ sessionId });
   const enhance = useEnhanceMutation({
     sessionId,
     rawContent,
-  });
-
-  const generateTitle = useGenerateTitleMutation({
-    sessionId,
-    enhancedContent,
+    onSuccess: (content) => {
+      console.log("useEnhanceMutation onSuccess", content);
+      generateTitle.mutate({ enhancedContent: content });
+    },
   });
 
   useAutoEnhance({
@@ -88,18 +88,6 @@ export default function EditorArea({
     enhance.mutate();
   }, [enhance]);
 
-  const updateTitle = useSession(sessionId, (s) => s.updateTitle);
-
-  const handleGenerateTitle = useCallback(() => {
-    generateTitle.mutate(undefined, {
-      onSuccess: (title) => {
-        if (title) {
-          updateTitle(title);
-        }
-      },
-    });
-  }, [generateTitle, updateTitle]);
-
   const safelyFocusEditor = useCallback(() => {
     if (editorRef.current?.editor && editorRef.current.editor.isEditable) {
       requestAnimationFrame(() => {
@@ -125,8 +113,6 @@ export default function EditorArea({
         editable={editable}
         onNavigateToEditor={safelyFocusEditor}
         hashtags={hashtags}
-        onGenerateTitle={handleGenerateTitle}
-        isGeneratingTitle={generateTitle.status === "pending"}
       />
 
       <div
@@ -184,9 +170,11 @@ export default function EditorArea({
 export function useEnhanceMutation({
   sessionId,
   rawContent,
+  onSuccess,
 }: {
   sessionId: string;
   rawContent: string;
+  onSuccess: (enhancedContent: string) => void;
 }) {
   const { userId, onboardingSessionId } = useHypr();
 
@@ -283,7 +271,9 @@ export function useEnhanceMutation({
 
       return text.then(miscCommands.opinionatedMdToHtml);
     },
-    onSuccess: () => {
+    onSuccess: (enhancedContent) => {
+      onSuccess(enhancedContent ?? "");
+
       analyticsCommands.event({
         event: sessionId === onboardingSessionId
           ? "onboarding_enhance_done"
@@ -306,22 +296,15 @@ export function useEnhanceMutation({
   return enhance;
 }
 
-export function useGenerateTitleMutation({
-  sessionId,
-  enhancedContent,
-}: {
-  sessionId: string;
-  enhancedContent: string;
-}) {
-  const { userId } = useHypr();
+function useGenerateTitleMutation({ sessionId }: { sessionId: string }) {
+  const { title, updateTitle } = useSession(sessionId, (s) => ({
+    title: s.session.title,
+    updateTitle: s.updateTitle,
+  }));
 
   const generateTitle = useMutation({
     mutationKey: ["generateTitle", sessionId],
-    mutationFn: async () => {
-      if (!enhancedContent || enhancedContent.trim() === "") {
-        return null;
-      }
-
+    mutationFn: async ({ enhancedContent }: { enhancedContent: string }) => {
       const config = await dbCommands.getConfig();
       const { type } = await connectorCommands.getLlmConnection();
 
@@ -344,13 +327,7 @@ export function useGenerateTitleMutation({
       const provider = await modelProvider();
       const model = provider.languageModel("defaultModel");
 
-      analyticsCommands.event({
-        event: "title_generation_start",
-        distinct_id: userId,
-        session_id: sessionId,
-      });
-
-      const { text } = streamText({
+      const newTitle = await generateText({
         abortSignal,
         model,
         messages: [
@@ -366,40 +343,16 @@ export function useGenerateTitleMutation({
         },
       });
 
-      const result = await text;
-
-      try {
-        const parsed = JSON.parse(result);
-        return parsed.title || result;
-      } catch {
-        return result;
+      if (!title) {
+        updateTitle(newTitle.text);
       }
-    },
-    onSuccess: (title) => {
-      if (title) {
-        analyticsCommands.event({
-          event: "title_generation_done",
-          distinct_id: userId,
-          session_id: sessionId,
-        });
-      }
-    },
-    onError: (error) => {
-      console.error("Title generation failed:", error);
-      toast({
-        id: "title-generation-error",
-        title: "Title generation failed",
-        content: "Failed to generate title for the note",
-        dismissible: true,
-        duration: 5000,
-      });
     },
   });
 
   return generateTitle;
 }
 
-export function useAutoEnhance({
+function useAutoEnhance({
   sessionId,
   enhanceStatus,
   enhanceMutate,

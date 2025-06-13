@@ -60,7 +60,7 @@ const saveSearchHistory = (userId: string, history: string[]) => {
 export const createSearchStore = (userId: string) => {
   const performSearch = debounce(async (query: string, setState: any, getState: any) => {
     setState({ isSearching: true });
-    
+
     try {
       if (query.trim() === "") {
         setState({ matches: [], isSearching: false });
@@ -124,7 +124,7 @@ export const createSearchStore = (userId: string) => {
     setQuery: (query: string) => {
       // Update query immediately for responsive typing
       set({ query, selectedIndex: -1 });
-      
+
       // Debounce the actual search
       performSearch(query, set, get);
     },

@@ -353,7 +353,7 @@ export function useGenerateTitleMutation({
       });
 
       const result = await text;
-      
+
       try {
         const parsed = JSON.parse(result);
         return parsed.title || result;
@@ -373,6 +373,7 @@ export function useGenerateTitleMutation({
     onError: (error) => {
       console.error("Title generation failed:", error);
       toast({
+        id: "title-generation-error",
         title: "Title generation failed",
         content: "Failed to generate title for the note",
         dismissible: true,

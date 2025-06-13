@@ -25,13 +25,13 @@ mod tests {
     #[test]
     fn test_title_grammar() {
         let gbnf = gbnf_validator::Validator::new().unwrap();
-        
+
         // Valid titles (letters and spaces only)
         assert!(gbnf.validate(TITLE, "Meeting Summary").unwrap());
         assert!(gbnf.validate(TITLE, "Product Review Discussion").unwrap());
         assert!(gbnf.validate(TITLE, "A").unwrap());
         assert!(gbnf.validate(TITLE, "Planning Session").unwrap());
-        
+
         // Invalid titles (should fail)
         assert!(!gbnf.validate(TITLE, "meeting summary").unwrap()); // lowercase start
         assert!(!gbnf.validate(TITLE, "Meeting-Summary").unwrap()); // hyphen

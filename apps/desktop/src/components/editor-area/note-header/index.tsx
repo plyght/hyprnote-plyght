@@ -16,7 +16,9 @@ interface NoteHeaderProps {
   isGeneratingTitle?: boolean;
 }
 
-export function NoteHeader({ onNavigateToEditor, editable, sessionId, hashtags = [], onGenerateTitle, isGeneratingTitle }: NoteHeaderProps) {
+export function NoteHeader(
+  { onNavigateToEditor, editable, sessionId, hashtags = [], onGenerateTitle, isGeneratingTitle }: NoteHeaderProps,
+) {
   const updateTitle = useSession(sessionId, (s) => s.updateTitle);
   const sessionTitle = useSession(sessionId, (s) => s.session.title);
 

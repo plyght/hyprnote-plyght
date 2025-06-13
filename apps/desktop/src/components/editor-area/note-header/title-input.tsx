@@ -40,7 +40,7 @@ export default function TitleInput({
         className="flex-1 border-none bg-transparent text-2xl font-bold focus:outline-none placeholder:text-neutral-400"
         onKeyDown={handleKeyDown}
       />
-      
+
       {editable && onGenerateTitle && (
         <button
           onClick={onGenerateTitle}
@@ -48,9 +48,9 @@ export default function TitleInput({
           className="p-1.5 rounded-md hover:bg-neutral-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Generate title with AI"
         >
-          <SparklesIcon 
-            size={18} 
-            className={`text-neutral-600 ${isGeneratingTitle ? 'animate-pulse' : ''}`} 
+          <SparklesIcon
+            size={18}
+            className={`text-neutral-600 ${isGeneratingTitle ? "animate-pulse" : ""}`}
           />
         </button>
       )}

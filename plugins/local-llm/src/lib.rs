@@ -110,8 +110,10 @@ mod test {
     }
 
     fn title_generation_request() -> CreateChatCompletionRequest {
-        use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs};
-        
+        use async_openai::types::{
+            ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
+        };
+
         CreateChatCompletionRequest {
             messages: vec![
                 ChatCompletionRequestMessage::System(
@@ -233,11 +235,13 @@ mod test {
 
         let content = data.choices[0].message.content.clone().unwrap();
         println!("Generated title: {}", content);
-        
+
         // Title should start with capital letter and contain only letters/spaces
         assert!(!content.is_empty());
         assert!(content.chars().next().unwrap().is_uppercase());
-        assert!(content.chars().all(|c| c.is_alphabetic() || c.is_whitespace()));
+        assert!(content
+            .chars()
+            .all(|c| c.is_alphabetic() || c.is_whitespace()));
     }
 
     #[tokio::test]
@@ -282,10 +286,12 @@ mod test {
             .await;
 
         println!("Generated title (streaming): {}", content);
-        
+
         // Title should start with capital letter and contain only letters/spaces
         assert!(!content.is_empty());
         assert!(content.chars().next().unwrap().is_uppercase());
-        assert!(content.chars().all(|c| c.is_alphabetic() || c.is_whitespace()));
+        assert!(content
+            .chars()
+            .all(|c| c.is_alphabetic() || c.is_whitespace()));
     }
 }

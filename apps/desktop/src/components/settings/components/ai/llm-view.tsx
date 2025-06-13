@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { cn } from "@hypr/ui/lib/utils";
-import { Trans } from "@lingui/react/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
@@ -44,6 +44,7 @@ const endpointSchema = z.object({
 export type FormValues = z.infer<typeof endpointSchema>;
 
 export function LLMView() {
+  const { t } = useLingui();
   const customLLMConnection = useQuery({
     queryKey: ["custom-llm-connection"],
     queryFn: () => connectorCommands.getCustomLlmConnection(),
@@ -287,7 +288,7 @@ export function LLMView() {
                         : (
                           <Input
                             {...field}
-                            placeholder="Enter model name (e.g., gpt-4, llama3.2:3b)"
+                            placeholder={t`Enter model name (e.g., gpt-4, llama3.2:3b)`}
                             disabled={!customLLMEnabled.data}
                           />
                         )}

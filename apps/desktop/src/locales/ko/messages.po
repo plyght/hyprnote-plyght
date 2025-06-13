@@ -346,11 +346,11 @@ msgstr ""
 msgid "Anyone with the link can view this page"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:199
+#: src/components/settings/components/ai/llm-view.tsx:200
 msgid "API Base URL"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:225
+#: src/components/settings/components/ai/llm-view.tsx:226
 msgid "API Key"
 msgstr ""
 
@@ -442,7 +442,7 @@ msgstr ""
 msgid "Connect"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:179
+#: src/components/settings/components/ai/llm-view.tsx:180
 msgid "Connect to a self-hosted or third-party LLM endpoint (OpenAI API compatible)."
 msgstr ""
 
@@ -488,7 +488,7 @@ msgstr ""
 msgid "Current Plan"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:176
+#: src/components/settings/components/ai/llm-view.tsx:177
 msgid "Custom Endpoint"
 msgstr ""
 
@@ -551,11 +551,15 @@ msgstr ""
 msgid "Enter a section title"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:228
+#: src/components/settings/components/ai/llm-view.tsx:291
+msgid "Enter model name (e.g., gpt-4, llama3.2:3b)"
+msgstr ""
+
+#: src/components/settings/components/ai/llm-view.tsx:229
 msgid "Enter the API key for your custom LLM endpoint"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:202
+#: src/components/settings/components/ai/llm-view.tsx:203
 msgid "Enter the base URL for your custom LLM endpoint (e.g., http://localhost:8080/v1)"
 msgstr ""
 
@@ -681,7 +685,7 @@ msgstr ""
 msgid "Live summary of the meeting"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:262
+#: src/components/settings/components/ai/llm-view.tsx:263
 msgid "Loading available models..."
 msgstr ""
 
@@ -723,7 +727,7 @@ msgstr ""
 msgid "Microphone Access"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:250
+#: src/components/settings/components/ai/llm-view.tsx:251
 msgid "Model Name"
 msgstr ""
 
@@ -919,7 +923,7 @@ msgstr ""
 msgid "Sections"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:253
+#: src/components/settings/components/ai/llm-view.tsx:254
 msgid "Select a model from the dropdown (if available) or manually enter the model name required by your endpoint."
 msgstr ""
 
@@ -1080,7 +1084,7 @@ msgstr ""
 msgid "Upgrade"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:154
+#: src/components/settings/components/ai/llm-view.tsx:155
 msgid "Use the local Llama 3.2 model for enhanced privacy and offline capability."
 msgstr ""
 

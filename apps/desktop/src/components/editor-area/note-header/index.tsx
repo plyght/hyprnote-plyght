@@ -12,9 +12,11 @@ interface NoteHeaderProps {
   editable?: boolean;
   sessionId: string;
   hashtags?: string[];
+  onGenerateTitle?: () => void;
+  isGeneratingTitle?: boolean;
 }
 
-export function NoteHeader({ onNavigateToEditor, editable, sessionId, hashtags = [] }: NoteHeaderProps) {
+export function NoteHeader({ onNavigateToEditor, editable, sessionId, hashtags = [], onGenerateTitle, isGeneratingTitle }: NoteHeaderProps) {
   const updateTitle = useSession(sessionId, (s) => s.updateTitle);
   const sessionTitle = useSession(sessionId, (s) => s.session.title);
 
@@ -34,6 +36,8 @@ export function NoteHeader({ onNavigateToEditor, editable, sessionId, hashtags =
           value={sessionTitle}
           onChange={handleTitleChange}
           onNavigateToEditor={onNavigateToEditor}
+          onGenerateTitle={onGenerateTitle}
+          isGeneratingTitle={isGeneratingTitle}
         />
         <Chips sessionId={sessionId} hashtags={hashtags} />
       </div>

@@ -57,6 +57,11 @@ export default function EditorArea({
     rawContent,
   });
 
+  const generateTitle = useGenerateTitleMutation({
+    sessionId,
+    enhancedContent,
+  });
+
   useAutoEnhance({
     sessionId,
     enhanceStatus: enhance.status,
@@ -83,6 +88,18 @@ export default function EditorArea({
     enhance.mutate();
   }, [enhance]);
 
+  const updateTitle = useSession(sessionId, (s) => s.updateTitle);
+
+  const handleGenerateTitle = useCallback(() => {
+    generateTitle.mutate(undefined, {
+      onSuccess: (title) => {
+        if (title) {
+          updateTitle(title);
+        }
+      },
+    });
+  }, [generateTitle, updateTitle]);
+
   const safelyFocusEditor = useCallback(() => {
     if (editorRef.current?.editor && editorRef.current.editor.isEditable) {
       requestAnimationFrame(() => {
@@ -108,6 +125,8 @@ export default function EditorArea({
         editable={editable}
         onNavigateToEditor={safelyFocusEditor}
         hashtags={hashtags}
+        onGenerateTitle={handleGenerateTitle}
+        isGeneratingTitle={generateTitle.status === "pending"}
       />
 
       <div
@@ -278,6 +297,91 @@ export function useEnhanceMutation({
   });
 
   return enhance;
+}
+
+export function useGenerateTitleMutation({
+  sessionId,
+  enhancedContent,
+}: {
+  sessionId: string;
+  enhancedContent: string;
+}) {
+  const { userId } = useHypr();
+
+  const generateTitle = useMutation({
+    mutationKey: ["generateTitle", sessionId],
+    mutationFn: async () => {
+      if (!enhancedContent || enhancedContent.trim() === "") {
+        return null;
+      }
+
+      const config = await dbCommands.getConfig();
+      const { type } = await connectorCommands.getLlmConnection();
+
+      const systemMessage = await templateCommands.render(
+        "create_title.system",
+        { config, type },
+      );
+
+      const userMessage = await templateCommands.render(
+        "create_title.user",
+        {
+          type,
+          enhanced_note: enhancedContent,
+        },
+      );
+
+      const abortController = new AbortController();
+      const abortSignal = AbortSignal.any([abortController.signal, AbortSignal.timeout(30 * 1000)]);
+
+      const provider = await modelProvider();
+      const model = provider.languageModel("defaultModel");
+
+      analyticsCommands.event({
+        event: "title_generation_start",
+        distinct_id: userId,
+        session_id: sessionId,
+      });
+
+      const { text } = streamText({
+        abortSignal,
+        model,
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: userMessage },
+        ],
+      });
+
+      const result = await text;
+      
+      try {
+        const parsed = JSON.parse(result);
+        return parsed.title || result;
+      } catch {
+        return result;
+      }
+    },
+    onSuccess: (title) => {
+      if (title) {
+        analyticsCommands.event({
+          event: "title_generation_done",
+          distinct_id: userId,
+          session_id: sessionId,
+        });
+      }
+    },
+    onError: (error) => {
+      console.error("Title generation failed:", error);
+      toast({
+        title: "Title generation failed",
+        content: "Failed to generate title for the note",
+        dismissible: true,
+        duration: 5000,
+      });
+    },
+  });
+
+  return generateTitle;
 }
 
 export function useAutoEnhance({

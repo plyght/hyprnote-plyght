@@ -223,10 +223,25 @@ fn build_response(
         .map(hypr_llama::FromOpenAI::from_openai)
         .collect();
 
+    // Detect if this is a title generation request by checking system message content
+    let is_title_request = request.messages.iter().any(|msg| {
+        match msg {
+            async_openai::types::ChatCompletionRequestMessage::System(system_msg) => {
+                system_msg.content.contains("generates a refined title")
+            }
+            _ => false,
+        }
+    });
+
+    let grammar = if is_title_request {
+        Some(hypr_gbnf::GBNF::Title.build())
+    } else {
+        Some(hypr_gbnf::GBNF::Enhance(Some(vec!["".to_string()])).build())
+    };
+
     let request = hypr_llama::LlamaRequest {
         messages,
-        // TODO: should not hard-code this
-        grammar: Some(hypr_gbnf::GBNF::Enhance(Some(vec!["".to_string()])).build()),
+        grammar,
     };
 
     Ok(Box::pin(model.generate_stream(request)?))

@@ -109,6 +109,30 @@ mod test {
         }
     }
 
+    fn title_generation_request() -> CreateChatCompletionRequest {
+        use async_openai::types::{ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs};
+        
+        CreateChatCompletionRequest {
+            messages: vec![
+                ChatCompletionRequestMessage::System(
+                    ChatCompletionRequestSystemMessageArgs::default()
+                        .content("You are a professional assistant that generates a refined title for a meeting note in English.")
+                        .build()
+                        .unwrap()
+                        .into(),
+                ),
+                ChatCompletionRequestMessage::User(
+                    ChatCompletionRequestUserMessageArgs::default()
+                        .content("# Enhanced Meeting Note:\n\n<enhanced_note>\n# Project Planning\n- Discussed Q1 roadmap\n- Reviewed budget allocations\n- Set team responsibilities\n</enhanced_note>")
+                        .build()
+                        .unwrap()
+                        .into(),
+                ),
+            ],
+            ..Default::default()
+        }
+    }
+
     #[tokio::test]
     #[ignore]
     // cargo test test_non_streaming_response -p tauri-plugin-local-llm -- --ignored --nocapture
@@ -180,5 +204,88 @@ mod test {
             .await;
 
         assert!(content.contains("Seoul"));
+    }
+
+    #[tokio::test]
+    #[ignore]
+    // cargo test test_title_generation_non_streaming -p tauri-plugin-local-llm -- --ignored --nocapture
+    async fn test_title_generation_non_streaming() {
+        let app = create_app(tauri::test::mock_builder());
+        app.start_server().await.unwrap();
+        let api_base = app.api_base().await.unwrap();
+
+        let client = reqwest::Client::new();
+
+        let response = client
+            .post(format!("{}/chat/completions", api_base))
+            .json(&CreateChatCompletionRequest {
+                stream: Some(false),
+                ..title_generation_request()
+            })
+            .send()
+            .await
+            .unwrap();
+
+        let data = response
+            .json::<CreateChatCompletionResponse>()
+            .await
+            .unwrap();
+
+        let content = data.choices[0].message.content.clone().unwrap();
+        println!("Generated title: {}", content);
+        
+        // Title should start with capital letter and contain only letters/spaces
+        assert!(!content.is_empty());
+        assert!(content.chars().next().unwrap().is_uppercase());
+        assert!(content.chars().all(|c| c.is_alphabetic() || c.is_whitespace()));
+    }
+
+    #[tokio::test]
+    #[ignore]
+    // cargo test test_title_generation_streaming -p tauri-plugin-local-llm -- --ignored --nocapture
+    async fn test_title_generation_streaming() {
+        let app = create_app(tauri::test::mock_builder());
+        app.start_server().await.unwrap();
+        let api_base = app.api_base().await.unwrap();
+
+        let client = reqwest::Client::new();
+
+        let response = client
+            .post(format!("{}/chat/completions", api_base))
+            .json(&CreateChatCompletionRequest {
+                stream: Some(true),
+                ..title_generation_request()
+            })
+            .send()
+            .await
+            .unwrap();
+
+        let stream = response.bytes_stream().map(|chunk| {
+            chunk.map(|data| {
+                let text = String::from_utf8_lossy(&data);
+                let stripped = text.split("data: ").collect::<Vec<&str>>()[1];
+                let c: CreateChatCompletionStreamResponse = serde_json::from_str(stripped).unwrap();
+                c.choices
+                    .first()
+                    .unwrap()
+                    .delta
+                    .content
+                    .as_ref()
+                    .unwrap()
+                    .clone()
+            })
+        });
+
+        let content = stream
+            .filter_map(|r| async move { r.ok() })
+            .collect::<String>()
+            .await;
+
+        println!("Generated title (streaming): {}", content);
+        
+        // Title should start with capital letter and contain only letters/spaces
+        assert!(!content.is_empty());
+        assert!(content.chars().next().unwrap().is_uppercase());
+        assert!(content.chars().all(|c| c.is_alphabetic() || c.is_whitespace()));
     }
 }

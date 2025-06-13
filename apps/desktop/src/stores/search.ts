@@ -24,7 +24,6 @@ type State = {
   isSearching: boolean;
   selectedIndex: number;
   searchHistory: string[];
-  recentSearches: string[];
 };
 
 type Actions = {
@@ -120,7 +119,6 @@ export const createSearchStore = (userId: string) => {
     isSearching: false,
     selectedIndex: -1,
     searchHistory: getStoredSearchHistory(userId),
-    recentSearches: [],
     setQuery: (query: string) => {
       // Update query immediately for responsive typing
       set({ query, selectedIndex: -1 });

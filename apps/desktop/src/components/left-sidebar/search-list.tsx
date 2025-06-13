@@ -87,7 +87,7 @@ export default function SearchList({ matches }: { matches: SearchMatch[] }) {
           <div>
             {sessionMatches.map((match, i) => (
               <SessionMatch
-                key={`session-${i}`}
+                key={`session-${match.item.id}`}
                 match={match as SearchMatch & { type: "session" }}
                 isSelected={selectedIndex === getGlobalIndex(0, i)}
                 query={query}
@@ -106,7 +106,7 @@ export default function SearchList({ matches }: { matches: SearchMatch[] }) {
           <div>
             {eventMatches.map((match, i) => (
               <EventMatch
-                key={`event-${i}`}
+                key={`event-${match.item.id}`}
                 match={match as SearchMatch & { type: "event" }}
                 isSelected={selectedIndex === getGlobalIndex(1, i)}
                 query={query}
@@ -125,7 +125,7 @@ export default function SearchList({ matches }: { matches: SearchMatch[] }) {
           <div>
             {humanMatches.map((match, i) => (
               <HumanMatch
-                key={`human-${i}`}
+                key={`human-${match.item.id}`}
                 match={match as SearchMatch & { type: "human" }}
                 isSelected={selectedIndex === getGlobalIndex(2, i)}
                 query={query}
@@ -144,7 +144,7 @@ export default function SearchList({ matches }: { matches: SearchMatch[] }) {
           <div>
             {organizationMatches.map((match, i) => (
               <OrganizationMatch
-                key={`org-${i}`}
+                key={`org-${match.item.id}`}
                 match={match as SearchMatch & { type: "organization" }}
                 isSelected={selectedIndex === getGlobalIndex(3, i)}
                 query={query}

@@ -201,13 +201,13 @@ export function LLMView() {
                     </FormLabel>
                     <FormDescription className="text-xs">
                       <Trans>
-                        Enter the base URL for your custom LLM endpoint (e.g., http://localhost:8080/v1)
+                        Enter the base URL for your custom LLM endpoint (e.g., http://localhost:11434)
                       </Trans>
                     </FormDescription>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="http://localhost:8080/v1"
+                        placeholder="http://localhost:11434"
                         disabled={!customLLMEnabled.data}
                       />
                     </FormControl>

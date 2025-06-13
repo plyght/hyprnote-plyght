@@ -1,3 +1,4 @@
+import type React from "react";
 import { commands as dbCommands, type Event, type Human, type Organization, type Session } from "@hypr/plugin-db";
 import { debounce } from "lodash-es";
 import { createStore } from "zustand";

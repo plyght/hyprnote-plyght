@@ -71,9 +71,9 @@ mod test {
     use super::*;
 
     use async_openai::types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestUserMessageArgs,
-        CreateChatCompletionRequest, CreateChatCompletionResponse,
-        CreateChatCompletionStreamResponse,
+        ChatCompletionRequestMessage, ChatCompletionRequestSystemMessageArgs,
+        ChatCompletionRequestUserMessageArgs, CreateChatCompletionRequest,
+        CreateChatCompletionResponse, CreateChatCompletionStreamResponse,
     };
     use futures_util::StreamExt;
 
@@ -110,10 +110,6 @@ mod test {
     }
 
     fn title_generation_request() -> CreateChatCompletionRequest {
-        use async_openai::types::{
-            ChatCompletionRequestSystemMessageArgs, ChatCompletionRequestUserMessageArgs,
-        };
-
         CreateChatCompletionRequest {
             messages: vec![
                 ChatCompletionRequestMessage::System(

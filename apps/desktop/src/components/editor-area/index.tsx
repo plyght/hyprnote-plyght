@@ -15,7 +15,7 @@ import Editor, { type TiptapEditor } from "@hypr/tiptap/editor";
 import Renderer from "@hypr/tiptap/renderer";
 import { extractHashtags } from "@hypr/tiptap/shared";
 import { cn } from "@hypr/ui/lib/utils";
-import { markdownTransform, modelProvider, smoothStream, streamText } from "@hypr/utils/ai";
+import { markdownTransform, modelProvider, providerName, smoothStream, streamText } from "@hypr/utils/ai";
 import { useOngoingSession, useSession } from "@hypr/utils/contexts";
 import { enhanceFailedToast } from "../toast/shared";
 import { FloatingButton } from "./floating-button";
@@ -265,6 +265,13 @@ export function useEnhanceMutation({
           markdownTransform(),
           smoothStream({ delayInMs: 80, chunking: "line" }),
         ],
+        providerOptions: {
+          [providerName]: {
+            metadata: {
+              grammar: "enhance",
+            },
+          },
+        },
       });
 
       let acc = "";
@@ -350,6 +357,13 @@ export function useGenerateTitleMutation({
           { role: "system", content: systemMessage },
           { role: "user", content: userMessage },
         ],
+        providerOptions: {
+          [providerName]: {
+            metadata: {
+              grammar: "title",
+            },
+          },
+        },
       });
 
       const result = await text;

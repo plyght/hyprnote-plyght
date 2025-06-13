@@ -223,20 +223,14 @@ fn build_response(
         .map(hypr_llama::FromOpenAI::from_openai)
         .collect();
 
-    // Detect if this is a title generation request by checking for title-gen marker
-    let is_title_request = request.messages.iter().any(|msg| match msg {
-        async_openai::types::ChatCompletionRequestMessage::System(system_msg) => {
-            match &system_msg.content {
-                async_openai::types::ChatCompletionRequestSystemMessageContent::Text(text) => {
-                    text.contains("<!-- title-gen -->")
-                }
-                _ => false,
-            }
-        }
-        _ => false,
-    });
-
-    let grammar = if is_title_request {
+    let grammar = if request
+        .metadata
+        .as_ref()
+        .unwrap_or(&serde_json::Value::Object(Default::default()))
+        .get("grammar")
+        .and_then(|v| v.as_str())
+        == Some("title")
+    {
         Some(hypr_gbnf::GBNF::Title.build())
     } else {
         Some(hypr_gbnf::GBNF::Enhance(Some(vec!["".to_string()])).build())

@@ -223,10 +223,15 @@ fn build_response(
         .map(hypr_llama::FromOpenAI::from_openai)
         .collect();
 
-    // Detect if this is a title generation request by checking system message content
+    // Detect if this is a title generation request by checking for title-gen marker
     let is_title_request = request.messages.iter().any(|msg| match msg {
         async_openai::types::ChatCompletionRequestMessage::System(system_msg) => {
-            system_msg.content.contains("generates a refined title")
+            match &system_msg.content {
+                async_openai::types::ChatCompletionRequestSystemMessageContent::Text(text) => {
+                    text.contains("<!-- title-gen -->")
+                }
+                _ => false,
+            }
         }
         _ => false,
     });

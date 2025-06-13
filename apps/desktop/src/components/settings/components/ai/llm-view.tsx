@@ -251,7 +251,8 @@ export function LLMView() {
                     </FormLabel>
                     <FormDescription className="text-xs">
                       <Trans>
-                        Select or enter the model name required by your endpoint.
+                        Select a model from the dropdown (if available) or manually enter the model name required by
+                        your endpoint.
                       </Trans>
                     </FormDescription>
                     <FormControl>
@@ -284,9 +285,11 @@ export function LLMView() {
                           </Select>
                         )
                         : (
-                          <div className="py-1 text-sm text-neutral-500">
-                            <Trans>No models available for this endpoint.</Trans>
-                          </div>
+                          <Input
+                            {...field}
+                            placeholder="Enter model name (e.g., gpt-4, llama3.2:3b)"
+                            disabled={!customLLMEnabled.data}
+                          />
                         )}
                     </FormControl>
                     <FormMessage />

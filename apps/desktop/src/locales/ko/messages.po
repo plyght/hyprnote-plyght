@@ -681,7 +681,7 @@ msgstr ""
 msgid "Live summary of the meeting"
 msgstr ""
 
-#: src/components/settings/components/ai/llm-view.tsx:261
+#: src/components/settings/components/ai/llm-view.tsx:262
 msgid "Loading available models..."
 msgstr ""
 
@@ -761,8 +761,8 @@ msgid "No members found"
 msgstr ""
 
 #: src/components/settings/components/ai/llm-view.tsx:288
-msgid "No models available for this endpoint."
-msgstr ""
+#~ msgid "No models available for this endpoint."
+#~ msgstr ""
 
 #: src/components/editor-area/note-header/chips/event-chip.tsx:302
 msgid "No past events found."
@@ -919,6 +919,10 @@ msgstr ""
 msgid "Sections"
 msgstr ""
 
+#: src/components/settings/components/ai/llm-view.tsx:253
+msgid "Select a model from the dropdown (if available) or manually enter the model name required by your endpoint."
+msgstr ""
+
 #: src/components/welcome-modal/model-selection-view.tsx:81
 msgid "Select a transcribing model"
 msgstr ""
@@ -928,8 +932,8 @@ msgid "Select Calendars"
 msgstr ""
 
 #: src/components/settings/components/ai/llm-view.tsx:253
-msgid "Select or enter the model name required by your endpoint."
-msgstr ""
+#~ msgid "Select or enter the model name required by your endpoint."
+#~ msgstr ""
 
 #: src/components/settings/views/team.tsx:240
 msgid "Send invite"

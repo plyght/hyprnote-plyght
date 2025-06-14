@@ -1,4 +1,3 @@
-import { useHyprSearch } from "@/contexts/search";
 import { Trans } from "@lingui/react/macro";
 import { useQuery } from "@tanstack/react-query";
 import { useMatch, useNavigate } from "@tanstack/react-router";
@@ -6,6 +5,7 @@ import { BuildingIcon, CalendarIcon, FileTextIcon, UserIcon } from "lucide-react
 import { AppWindowMacIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { useHyprSearch } from "@/contexts/search";
 import { type SearchMatch } from "@/stores/search";
 import { commands as dbCommands } from "@hypr/plugin-db";
 import { commands as windowsCommands } from "@hypr/plugin-windows";
@@ -19,14 +19,11 @@ import { cn } from "@hypr/ui/lib/utils";
 import { formatRemainingTime } from "@hypr/utils/datetime";
 
 const highlightText = (text: string, query: string) => {
-  if (!query.trim() || query.length < 2) {
+  if (!query.trim()) {
     return text;
   }
 
-  // Simple case-insensitive highlighting - much faster
-  const lowerText = text.toLowerCase();
-  const lowerQuery = query.toLowerCase();
-  const index = lowerText.indexOf(lowerQuery);
+  const index = text.toLowerCase().indexOf(query.toLowerCase());
 
   if (index === -1) {
     return text;
@@ -35,7 +32,7 @@ const highlightText = (text: string, query: string) => {
   return (
     <>
       {text.substring(0, index)}
-      <mark className="bg-yellow-200 text-black px-0.5">
+      <mark className="bg-yellow-100 rounded-sm">
         {text.substring(index, index + query.length)}
       </mark>
       {text.substring(index + query.length)}

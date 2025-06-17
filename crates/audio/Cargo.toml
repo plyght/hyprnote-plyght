@@ -38,3 +38,9 @@ hound = { workspace = true }
 hypr-data = { workspace = true }
 rodio = { workspace = true }
 serial_test = { workspace = true }
+futures-util = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+objc2 = { workspace = true }
+objc2-foundation = { workspace = true }

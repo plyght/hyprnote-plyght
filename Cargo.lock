@@ -8545,6 +8545,8 @@ dependencies = [
  "objc2-user-notifications",
  "serde",
  "specta",
+ "tracing",
+ "uuid",
  "wezterm-toast-notification",
 ]
 

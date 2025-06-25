@@ -102,10 +102,11 @@ impl<R: tauri::Runtime, T: tauri::Manager<R>> NotificationPluginExt<R> for T {
     fn start_detect_notification(&self) -> Result<(), Error> {
         let cb = hypr_detect::new_callback(move |_bundle_id| {
             let notif = hypr_notification2::Notification {
-                title: "Meeting detected".to_string(),
-                message: "Click here to start writing a note".to_string(),
+                title: "Ad-hoc".to_string(),
+                message: "Meeting detected\nClick to start listening & take notes.".to_string(),
                 url: Some("hypr://notification".to_string()),
                 timeout: Some(std::time::Duration::from_secs(10)),
+                icon: None, // Ad-hoc meetings don't have specific app icons since they're detected generically
             };
 
             hypr_notification2::show(notif);

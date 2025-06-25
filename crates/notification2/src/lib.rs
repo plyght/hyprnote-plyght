@@ -1,14 +1,45 @@
-pub use wezterm::ToastNotification as Notification;
+pub use wezterm::ToastNotification as WezTermNotification;
 
 #[cfg(target_os = "macos")]
 mod macos;
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+pub struct Notification {
+    pub title: String,
+    pub message: String,
+    pub url: Option<String>,
+    pub timeout: Option<std::time::Duration>,
+    pub icon: Option<NotificationIcon>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]
+pub enum NotificationIcon {
+    AppIcon(String),    // Bundle ID or app name
+    SystemIcon(String), // System icon name
+    Calendar,
+}
 
 pub fn show(notif: Notification) {
     if cfg!(debug_assertions) {
         return;
     }
 
-    wezterm::show(notif);
+    #[cfg(target_os = "macos")]
+    {
+        if notif.icon.is_some() {
+            macos::show_with_icon(notif);
+            return;
+        }
+    }
+
+    // Fallback to wezterm for notifications without icons
+    let wezterm_notif = WezTermNotification {
+        title: notif.title,
+        message: notif.message,
+        url: notif.url,
+        timeout: notif.timeout,
+    };
+    wezterm::show(wezterm_notif);
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, specta::Type)]

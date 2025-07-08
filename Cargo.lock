@@ -14070,6 +14070,7 @@ dependencies = [
  "db-user",
  "detect",
  "notification2",
+ "regex",
  "serde",
  "specta",
  "specta-typescript",
@@ -14077,12 +14078,14 @@ dependencies = [
  "tauri",
  "tauri-plugin",
  "tauri-plugin-db",
+ "tauri-plugin-listener",
  "tauri-plugin-store",
  "tauri-plugin-store2",
  "tauri-specta",
  "thiserror 2.0.12",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
